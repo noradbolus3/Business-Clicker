@@ -113,6 +113,7 @@ var stats_label: Label
 
 func _ready() -> void:
 	_build_ui()
+	_apply_premium_ui()
 	_load_game()
 	_recalculate_income()
 	_refresh_ui()
@@ -122,7 +123,9 @@ func _ready() -> void:
 # =========================================================
 
 func _process(delta: float) -> void:
+
 	if passive_income > 0.0:
+
 		cash += passive_income * delta
 		total_earned += passive_income * delta
 
@@ -519,6 +522,180 @@ func _build_ui() -> void:
 	)
 
 	main.add_child(save_button)
+
+# =========================================================
+# PREMIUM UI
+# =========================================================
+
+func _apply_premium_ui() -> void:
+
+	# -------------------------------------------------------
+	# MAIN LABELS
+	# -------------------------------------------------------
+
+	if cash_label != null:
+
+		cash_label.add_theme_color_override(
+			"font_color",
+			Color("#f5c542")
+		)
+
+	if income_label != null:
+
+		income_label.add_theme_color_override(
+			"font_color",
+			Color("#55d98b")
+		)
+
+	if business_label != null:
+
+		business_label.add_theme_color_override(
+			"font_color",
+			Color("#ffffff")
+		)
+
+	if status_label != null:
+
+		status_label.add_theme_color_override(
+			"font_color",
+			Color("#9aa7bd")
+		)
+
+	# -------------------------------------------------------
+	# EARN BUTTON
+	# -------------------------------------------------------
+
+	if earn_button != null:
+
+		var earn_normal := StyleBoxFlat.new()
+
+		earn_normal.bg_color = Color("#18243a")
+
+		earn_normal.corner_radius_top_left = 24
+		earn_normal.corner_radius_top_right = 24
+		earn_normal.corner_radius_bottom_left = 24
+		earn_normal.corner_radius_bottom_right = 24
+
+		earn_normal.border_width_left = 2
+		earn_normal.border_width_top = 2
+		earn_normal.border_width_right = 2
+		earn_normal.border_width_bottom = 2
+
+		earn_normal.border_color = Color("#f5c542")
+
+		var earn_hover := earn_normal.duplicate()
+
+		earn_hover.bg_color = Color("#243654")
+
+		var earn_pressed := earn_normal.duplicate()
+
+		earn_pressed.bg_color = Color("#101a2b")
+
+		earn_button.add_theme_stylebox_override(
+			"normal",
+			earn_normal
+		)
+
+		earn_button.add_theme_stylebox_override(
+			"hover",
+			earn_hover
+		)
+
+		earn_button.add_theme_stylebox_override(
+			"pressed",
+			earn_pressed
+		)
+
+		earn_button.add_theme_color_override(
+			"font_color",
+			Color("#ffffff")
+		)
+
+		earn_button.add_theme_color_override(
+			"font_hover_color",
+			Color("#f5c542")
+		)
+
+		earn_button.add_theme_font_size_override(
+			"font_size",
+			30
+		)
+
+	# -------------------------------------------------------
+	# MANAGEMENT BUTTONS
+	# -------------------------------------------------------
+
+	_style_button(upgrade_button)
+	_style_button(manager_button)
+	_style_button(employee_button)
+
+	# -------------------------------------------------------
+	# BUSINESS BUTTONS
+	# -------------------------------------------------------
+
+	_style_button(retail_button)
+	_style_button(carwash_button)
+	_style_button(coffee_button)
+
+
+func _style_button(button: Button) -> void:
+
+	if button == null:
+		return
+
+	var normal := StyleBoxFlat.new()
+
+	normal.bg_color = Color("#121b2d")
+
+	normal.corner_radius_top_left = 16
+	normal.corner_radius_top_right = 16
+	normal.corner_radius_bottom_left = 16
+	normal.corner_radius_bottom_right = 16
+
+	normal.border_width_left = 1
+	normal.border_width_top = 1
+	normal.border_width_right = 1
+	normal.border_width_bottom = 1
+
+	normal.border_color = Color("#2c3b56")
+
+	var hover := normal.duplicate()
+
+	hover.bg_color = Color("#1b2942")
+
+	var pressed := normal.duplicate()
+
+	pressed.bg_color = Color("#0d1524")
+
+	button.add_theme_stylebox_override(
+		"normal",
+		normal
+	)
+
+	button.add_theme_stylebox_override(
+		"hover",
+		hover
+	)
+
+	button.add_theme_stylebox_override(
+		"pressed",
+		pressed
+	)
+
+	button.add_theme_color_override(
+		"font_color",
+		Color("#ffffff")
+	)
+
+	button.add_theme_color_override(
+		"font_hover_color",
+		Color("#f5c542")
+	)
+
+	button.add_theme_font_size_override(
+		"font_size",
+		18
+	)
 
 # =========================================================
 # EARN
