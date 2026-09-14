@@ -622,9 +622,11 @@ func _upgrade_cost() -> float:
 
 	return 100.0 * pow(1.7, upgrade_level)
 
+
 func _manager_cost() -> float:
 
 	return 750.0 * pow(1.85, manager_level)
+
 
 func _employee_cost() -> float:
 
@@ -638,13 +640,16 @@ func _select_retail() -> void:
 
 	_select_business(0)
 
+
 func _select_carwash() -> void:
 
 	_select_business(1)
 
+
 func _select_coffee() -> void:
 
 	_select_business(2)
+
 
 func _select_business(index: int) -> void:
 
@@ -834,21 +839,20 @@ func _refresh_ui() -> void:
 
 	var owned := 0
 
-for unlocked in unlocked_businesses:
+	for unlocked in unlocked_businesses:
 
-	if unlocked:
-		owned += 1
+		if unlocked:
+			owned += 1
 
-stats_label.text = "💵 Cash: ₹%s\n📈 Total Revenue: ₹%s\n🏢 Businesses: %d / %d\n👔 Managers: %d\n👷 Employees: %d\n⬆️ Upgrade Level: %d" % [
-	_money(cash),
-	_money(total_earned),
-	owned,
-	business_names.size(),
-	manager_level,
-	employee_count,
-	upgrade_level
-]
-	
+	stats_label.text = "💵 Cash: ₹%s\n📈 Total Revenue: ₹%s\n🏢 Businesses: %d / %d\n👔 Managers: %d\n👷 Employees: %d\n⬆️ Upgrade Level: %d" % [
+		_money(cash),
+		_money(total_earned),
+		owned,
+		business_names.size(),
+		manager_level,
+		employee_count,
+		upgrade_level
+	]
 
 # =========================================================
 # BUSINESS BUTTON TEXT
