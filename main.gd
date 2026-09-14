@@ -907,10 +907,7 @@ func _upgrade_click() -> void:
 
 	if click_value >= MAX_CLICK_VALUE:
 
-		status_label.text = (
-			"Clicker MAXED at $10 per click. "
-			"Build businesses and use 10X Boost."
-		)
+		status_label.text = "Clicker MAXED at $10 per click. Build businesses and use 10X Boost."
 
 		return
 
@@ -918,10 +915,7 @@ func _upgrade_click() -> void:
 
 	if cash < cost:
 
-		status_label.text = (
-			"Need $%s for the next click upgrade."
-			% _money(cost)
-		)
+		status_label.text = "Need $%s for the next click upgrade." % _money(cost)
 
 		return
 
