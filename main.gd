@@ -839,22 +839,22 @@ func _refresh_ui() -> void:
 		if unlocked:
 			owned += 1
 
-			var owned := 0
+	var owned_count := 0
 
-	for unlocked in unlocked_businesses:
+for unlocked in unlocked_businesses:
 
-		if unlocked:
-			owned += 1
+	if unlocked:
+		owned_count += 1
 
-	stats_label.text = "💵 Cash: ₹%s\n📈 Total Revenue: ₹%s\n🏢 Businesses: %d / %d\n👔 Managers: %d\n👷 Employees: %d\n⬆️ Upgrade Level: %d" % [
-		_money(cash),
-		_money(total_earned),
-		owned,
-		business_names.size(),
-		manager_level,
-		employee_count,
-		upgrade_level
-	]
+stats_label.text = "💵 Cash: ₹%s\n📈 Total Revenue: ₹%s\n🏢 Businesses: %d / %d\n👔 Managers: %d\n👷 Employees: %d\n⬆️ Upgrade Level: %d" % [
+	_money(cash),
+	_money(total_earned),
+	owned_count,
+	business_names.size(),
+	manager_level,
+	employee_count,
+	upgrade_level
+]
 	
 
 # =========================================================
