@@ -1,6 +1,6 @@
 extends Control
 
-const SAVE_PATH := "user://business_clicker_save_v2.json"
+const SAVE_PATH: String = "user://business_clicker_save_v2.json"
 
 # =========================================================
 # GAME SETTINGS
@@ -8,19 +8,19 @@ const SAVE_PATH := "user://business_clicker_save_v2.json"
 
 const DAYS_PER_MONTH: int = 30
 
-# Approximately 5 real seconds = 1 game day.
+# 5 real seconds = 1 game day.
 const REAL_SECONDS_PER_GAME_DAY: float = 5.0
 
+# Clicker permanently stops at $10 per click.
 const MAX_CLICK_VALUE: float = 10.0
 
-# Rewarded boost multiplier.
+# Rewarded-ad boost.
 const BOOST_MULTIPLIER: float = 10.0
-
-# Boost duration in game days.
 const BOOST_DURATION_DAYS: float = 3.0
 
-# Company unlock requirement.
+# Company requirements.
 const COMPANY_UNLOCK_COST: float = 100000.0
+const COMPANY_REQUIRED_BUSINESSES: int = 2
 
 # =========================================================
 # GAME STATE
@@ -34,7 +34,6 @@ var click_level: int = 1
 
 var game_day: int = 1
 var game_month: int = 1
-
 var day_timer: float = 0.0
 
 var boost_active: bool = false
@@ -126,7 +125,7 @@ var business_unlock_costs: Array = [
 	150000.0
 ]
 
-# Base monthly revenue at level 1.
+# Monthly revenue at Level 1.
 var business_base_revenue: Array = [
 	1500.0,
 	6000.0,
@@ -135,7 +134,7 @@ var business_base_revenue: Array = [
 	150000.0
 ]
 
-# Base monthly operating expenses at level 1.
+# Monthly operating expenses at Level 1.
 var business_base_expenses: Array = [
 	850.0,
 	3600.0,
@@ -144,11 +143,37 @@ var business_base_expenses: Array = [
 	90000.0
 ]
 
-# Revenue growth per business level.
+# Business upgrade starting costs.
+var business_upgrade_base_cost: Array = [
+	500.0,
+	2000.0,
+	7500.0,
+	30000.0,
+	90000.0
+]
+
 var business_level_multiplier: float = 1.55
+var business_expense_multiplier: float = 1.42
 
 # =========================================================
-# UI
+# CLICKER UPGRADE COSTS
+# =========================================================
+
+# $1 -> $2 -> ... -> $10.
+var click_upgrade_costs: Array = [
+	1.0,
+	5.0,
+	15.0,
+	35.0,
+	75.0,
+	150.0,
+	300.0,
+	600.0,
+	1200.0
+]
+
+# =========================================================
+# UI REFERENCES
 # =========================================================
 
 var cash_label: Label
@@ -173,12 +198,16 @@ var coffee_button: Button
 var supermarket_button: Button
 var restaurant_button: Button
 
+var business_upgrade_button: Button
+
 var company_button: Button
 var company_upgrade_button: Button
 
 var mission_label: Label
 var achievement_label: Label
 var stats_label: Label
+
+var save_button: Button
 
 # =========================================================
 # MISSIONS
@@ -215,15 +244,6 @@ var mission_rewards: Array = [
 # ACHIEVEMENTS
 # =========================================================
 
-var achievement_earned: Array = [
-	false,
-	false,
-	false,
-	false,
-	false,
-	false
-]
-
 var achievement_names: Array = [
 	"First Dollar",
 	"Serious Earner",
@@ -233,6 +253,15 @@ var achievement_names: Array = [
 	"Business Tycoon"
 ]
 
+var achievement_earned: Array = [
+	false,
+	false,
+	false,
+	false,
+	false,
+	false
+]
+
 # =========================================================
 # READY
 # =========================================================
@@ -240,11 +269,8 @@ var achievement_names: Array = [
 func _ready() -> void:
 
 	_build_ui()
-
 	_load_game()
-
 	_recalculate_businesses()
-
 	_refresh_ui()
 
 # =========================================================
@@ -262,7 +288,6 @@ func _process(delta: float) -> void:
 		_advance_game_day()
 
 	_refresh_ui()
-
 	_check_achievements()
 
 # =========================================================
@@ -282,23 +307,19 @@ func _advance_game_day() -> void:
 			boost_active = false
 			boost_days_left = 0.0
 
-			status_label.text = "Boost ended."
+			status_label.text = "10X Boost ended."
 
-	# Month complete.
+	# -------------------------------------------------------
+	# MONTH END
+	# -------------------------------------------------------
+
 	if game_day > DAYS_PER_MONTH:
 
 		game_day = 1
-
 		game_month += 1
-
 		total_months_completed += 1
 
 		_process_monthly_businesses()
-
-		status_label.text = (
-			"Month %d completed. Business profit received."
-			% (game_month - 1)
-		)
 
 	_save_game()
 
@@ -312,7 +333,7 @@ func _build_ui() -> void:
 	# BACKGROUND
 	# -------------------------------------------------------
 
-	var background := ColorRect.new()
+	var background: ColorRect = ColorRect.new()
 
 	background.color = Color("#080c16")
 
@@ -326,7 +347,7 @@ func _build_ui() -> void:
 	# SCROLL
 	# -------------------------------------------------------
 
-	var scroll := ScrollContainer.new()
+	var scroll: ScrollContainer = ScrollContainer.new()
 
 	scroll.set_anchors_preset(
 		Control.PRESET_FULL_RECT
@@ -343,15 +364,12 @@ func _build_ui() -> void:
 	add_child(scroll)
 
 	# -------------------------------------------------------
-	# MAIN
+	# MAIN CONTENT
 	# -------------------------------------------------------
 
-	var main := VBoxContainer.new()
+	var main: VBoxContainer = VBoxContainer.new()
 
-	main.custom_minimum_size = Vector2(
-		672,
-		2450
-	)
+	main.custom_minimum_size = Vector2(672, 2850)
 
 	main.add_theme_constant_override(
 		"separation",
@@ -364,7 +382,7 @@ func _build_ui() -> void:
 	# TITLE
 	# =======================================================
 
-	var title := Label.new()
+	var title: Label = Label.new()
 
 	title.text = "BUSINESS CLICKER"
 
@@ -385,9 +403,11 @@ func _build_ui() -> void:
 	# SUBTITLE
 	# =======================================================
 
-	var subtitle := Label.new()
+	var subtitle: Label = Label.new()
 
-	subtitle.text = "BUILD CAPITAL • OWN BUSINESSES • BUILD A COMPANY"
+	subtitle.text = (
+		"BUILD CAPITAL  •  OWN BUSINESSES  •  BUILD A COMPANY"
+	)
 
 	subtitle.horizontal_alignment = (
 		HORIZONTAL_ALIGNMENT_CENTER
@@ -427,7 +447,7 @@ func _build_ui() -> void:
 
 	click_label = Label.new()
 
-	click_label.text = "Earning: $1 / click"
+	click_label.text = "Per Click: $1"
 
 	click_label.horizontal_alignment = (
 		HORIZONTAL_ALIGNMENT_CENTER
@@ -446,7 +466,7 @@ func _build_ui() -> void:
 
 	time_label = Label.new()
 
-	time_label.text = "Day 1 / 30 • Month 1"
+	time_label.text = "Day 1 / 30  •  Month 1"
 
 	time_label.horizontal_alignment = (
 		HORIZONTAL_ALIGNMENT_CENTER
@@ -460,12 +480,12 @@ func _build_ui() -> void:
 	main.add_child(time_label)
 
 	# =======================================================
-	# BOOST STATUS
+	# BOOST
 	# =======================================================
 
 	boost_label = Label.new()
 
-	boost_label.text = "Boost: OFF"
+	boost_label.text = "BOOST OFF  •  WATCH AD FOR 10X"
 
 	boost_label.horizontal_alignment = (
 		HORIZONTAL_ALIGNMENT_CENTER
@@ -479,17 +499,14 @@ func _build_ui() -> void:
 	main.add_child(boost_label)
 
 	# =======================================================
-	# EARN
+	# EARN BUTTON
 	# =======================================================
 
 	earn_button = Button.new()
 
-	earn_button.text = "EARN\n+$1"
+	earn_button.text = "EARN MONEY\n+$1"
 
-	earn_button.custom_minimum_size = Vector2(
-		0,
-		170
-	)
+	earn_button.custom_minimum_size = Vector2(0, 170)
 
 	earn_button.pressed.connect(
 		_on_earn_pressed
@@ -498,12 +515,12 @@ func _build_ui() -> void:
 	main.add_child(earn_button)
 
 	# =======================================================
-	# BOOST
+	# BOOST BUTTON
 	# =======================================================
 
 	boost_button = Button.new()
 
-	boost_button.text = "WATCH AD • 10X BOOST"
+	boost_button.text = "WATCH AD  •  10X BOOST"
 
 	boost_button.custom_minimum_size.y = 80
 
@@ -519,7 +536,9 @@ func _build_ui() -> void:
 
 	status_label = Label.new()
 
-	status_label.text = "Start building your capital."
+	status_label.text = (
+		"Start building your capital."
+	)
 
 	status_label.horizontal_alignment = (
 		HORIZONTAL_ALIGNMENT_CENTER
@@ -534,10 +553,10 @@ func _build_ui() -> void:
 	main.add_child(status_label)
 
 	# =======================================================
-	# CLICKER UPGRADE
+	# CLICKER
 	# =======================================================
 
-	var click_title := Label.new()
+	var click_title: Label = Label.new()
 
 	click_title.text = "CLICKER"
 
@@ -562,7 +581,7 @@ func _build_ui() -> void:
 	# MANAGEMENT
 	# =======================================================
 
-	var management_title := Label.new()
+	var management_title: Label = Label.new()
 
 	management_title.text = "MANAGEMENT"
 
@@ -597,7 +616,7 @@ func _build_ui() -> void:
 	# BUSINESSES
 	# =======================================================
 
-	var business_title := Label.new()
+	var business_title: Label = Label.new()
 
 	business_title.text = "BUSINESSES"
 
@@ -659,10 +678,24 @@ func _build_ui() -> void:
 	main.add_child(restaurant_button)
 
 	# =======================================================
-	# MONTHLY BUSINESS REPORT
+	# SELECTED BUSINESS UPGRADE
 	# =======================================================
 
-	var monthly_title := Label.new()
+	business_upgrade_button = Button.new()
+
+	business_upgrade_button.custom_minimum_size.y = 85
+
+	business_upgrade_button.pressed.connect(
+		_upgrade_selected_business
+	)
+
+	main.add_child(business_upgrade_button)
+
+	# =======================================================
+	# MONTHLY REPORT
+	# =======================================================
+
+	var monthly_title: Label = Label.new()
 
 	monthly_title.text = "MONTHLY BUSINESS REPORT"
 
@@ -692,7 +725,7 @@ func _build_ui() -> void:
 	# COMPANY
 	# =======================================================
 
-	var company_title := Label.new()
+	var company_title: Label = Label.new()
 
 	company_title.text = "COMPANY"
 
@@ -729,7 +762,7 @@ func _build_ui() -> void:
 		TextServer.AUTOWRAP_WORD_SMART
 	)
 
-	company_label.custom_minimum_size.y = 150
+	company_label.custom_minimum_size.y = 160
 
 	company_label.add_theme_font_size_override(
 		"font_size",
@@ -742,7 +775,7 @@ func _build_ui() -> void:
 	# MISSIONS
 	# =======================================================
 
-	var mission_title := Label.new()
+	var mission_title: Label = Label.new()
 
 	mission_title.text = "MISSIONS"
 
@@ -772,7 +805,7 @@ func _build_ui() -> void:
 	# ACHIEVEMENTS
 	# =======================================================
 
-	var achievement_title := Label.new()
+	var achievement_title: Label = Label.new()
 
 	achievement_title.text = "ACHIEVEMENTS"
 
@@ -802,7 +835,7 @@ func _build_ui() -> void:
 	# STATS
 	# =======================================================
 
-	var stats_title := Label.new()
+	var stats_title: Label = Label.new()
 
 	stats_title.text = "GAME STATS"
 
@@ -819,7 +852,7 @@ func _build_ui() -> void:
 		TextServer.AUTOWRAP_WORD_SMART
 	)
 
-	stats_label.custom_minimum_size.y = 180
+	stats_label.custom_minimum_size.y = 190
 
 	stats_label.add_theme_font_size_override(
 		"font_size",
@@ -832,7 +865,7 @@ func _build_ui() -> void:
 	# SAVE
 	# =======================================================
 
-	var save_button := Button.new()
+	save_button = Button.new()
 
 	save_button.text = "SAVE GAME"
 
@@ -857,79 +890,57 @@ func _build_ui() -> void:
 func _apply_premium_ui() -> void:
 
 	if cash_label != null:
-
 		cash_label.add_theme_color_override(
 			"font_color",
 			Color("#f5c542")
 		)
 
 	if click_label != null:
-
 		click_label.add_theme_color_override(
 			"font_color",
 			Color("#55d98b")
 		)
 
 	if boost_label != null:
-
 		boost_label.add_theme_color_override(
 			"font_color",
 			Color("#f5c542")
 		)
 
 	if time_label != null:
-
 		time_label.add_theme_color_override(
 			"font_color",
 			Color("#9aa7bd")
 		)
 
 	if business_label != null:
-
 		business_label.add_theme_color_override(
 			"font_color",
 			Color("#ffffff")
 		)
 
 	if monthly_label != null:
-
 		monthly_label.add_theme_color_override(
 			"font_color",
 			Color("#55d98b")
 		)
 
 	if company_label != null:
-
 		company_label.add_theme_color_override(
 			"font_color",
 			Color("#ffffff")
 		)
 
 	if status_label != null:
-
 		status_label.add_theme_color_override(
 			"font_color",
 			Color("#9aa7bd")
 		)
 
-	# -------------------------------------------------------
-	# EARN BUTTON
-	# -------------------------------------------------------
-
 	_style_earn_button(earn_button)
-
-	# -------------------------------------------------------
-	# BOOST
-	# -------------------------------------------------------
-
 	_style_boost_button(boost_button)
 
-	# -------------------------------------------------------
-	# NORMAL BUTTONS
-	# -------------------------------------------------------
-
 	_style_button(click_upgrade_button)
-
 	_style_button(employee_button)
 	_style_button(manager_button)
 
@@ -939,16 +950,22 @@ func _apply_premium_ui() -> void:
 	_style_button(supermarket_button)
 	_style_button(restaurant_button)
 
+	_style_button(business_upgrade_button)
+
 	_style_button(company_button)
 	_style_button(company_upgrade_button)
+	_style_button(save_button)
 
+# =========================================================
+# EARN BUTTON STYLE
+# =========================================================
 
 func _style_earn_button(button: Button) -> void:
 
 	if button == null:
 		return
 
-	var normal := StyleBoxFlat.new()
+	var normal: StyleBoxFlat = StyleBoxFlat.new()
 
 	normal.bg_color = Color("#18243a")
 
@@ -964,11 +981,11 @@ func _style_earn_button(button: Button) -> void:
 
 	normal.border_color = Color("#f5c542")
 
-	var hover := normal.duplicate()
+	var hover: StyleBoxFlat = normal.duplicate()
 
 	hover.bg_color = Color("#243654")
 
-	var pressed := normal.duplicate()
+	var pressed: StyleBoxFlat = normal.duplicate()
 
 	pressed.bg_color = Color("#101a2b")
 
@@ -1002,13 +1019,16 @@ func _style_earn_button(button: Button) -> void:
 		30
 	)
 
+# =========================================================
+# BOOST BUTTON STYLE
+# =========================================================
 
 func _style_boost_button(button: Button) -> void:
 
 	if button == null:
 		return
 
-	var normal := StyleBoxFlat.new()
+	var normal: StyleBoxFlat = StyleBoxFlat.new()
 
 	normal.bg_color = Color("#172d25")
 
@@ -1024,11 +1044,11 @@ func _style_boost_button(button: Button) -> void:
 
 	normal.border_color = Color("#55d98b")
 
-	var hover := normal.duplicate()
+	var hover: StyleBoxFlat = normal.duplicate()
 
 	hover.bg_color = Color("#214534")
 
-	var pressed := normal.duplicate()
+	var pressed: StyleBoxFlat = normal.duplicate()
 
 	pressed.bg_color = Color("#102219")
 
@@ -1062,13 +1082,16 @@ func _style_boost_button(button: Button) -> void:
 		19
 	)
 
+# =========================================================
+# NORMAL BUTTON STYLE
+# =========================================================
 
 func _style_button(button: Button) -> void:
 
 	if button == null:
 		return
 
-	var normal := StyleBoxFlat.new()
+	var normal: StyleBoxFlat = StyleBoxFlat.new()
 
 	normal.bg_color = Color("#121b2d")
 
@@ -1084,11 +1107,11 @@ func _style_button(button: Button) -> void:
 
 	normal.border_color = Color("#2c3b56")
 
-	var hover := normal.duplicate()
+	var hover: StyleBoxFlat = normal.duplicate()
 
 	hover.bg_color = Color("#1b2942")
 
-	var pressed := normal.duplicate()
+	var pressed: StyleBoxFlat = normal.duplicate()
 
 	pressed.bg_color = Color("#0d1524")
 
@@ -1128,10 +1151,9 @@ func _style_button(button: Button) -> void:
 
 func _on_earn_pressed() -> void:
 
-	var amount := click_value
+	var amount: float = click_value
 
 	if boost_active:
-
 		amount *= BOOST_MULTIPLIER
 
 	cash += amount
@@ -1143,9 +1165,10 @@ func _on_earn_pressed() -> void:
 	)
 
 	_check_achievements()
+	_refresh_ui()
 
 # =========================================================
-# CLICK UPGRADE
+# CLICKER UPGRADE
 # =========================================================
 
 func _upgrade_click() -> void:
@@ -1153,18 +1176,18 @@ func _upgrade_click() -> void:
 	if click_value >= MAX_CLICK_VALUE:
 
 		status_label.text = (
-			"Click income reached the $10 maximum. "
-			"Use Boost or build a business."
+			"Clicker MAXED at $10 per click. "
+			"Build businesses and use 10X Boost."
 		)
 
 		return
 
-	var cost := _click_upgrade_cost()
+	var cost: float = _click_upgrade_cost()
 
 	if cash < cost:
 
 		status_label.text = (
-			"Need $%s for click upgrade."
+			"Need $%s for the next click upgrade."
 			% _money(cost)
 		)
 
@@ -1180,25 +1203,28 @@ func _upgrade_click() -> void:
 	)
 
 	status_label.text = (
-		"Click power increased to $%s."
+		"Click power increased to $%s per click."
 		% _money(click_value)
 	)
 
 	_refresh_ui()
-
 	_save_game()
 
 
 func _click_upgrade_cost() -> float:
 
 	if click_value >= MAX_CLICK_VALUE:
-
 		return 0.0
 
-	return 25.0 * pow(
-		1.65,
-		float(click_level - 1)
-	)
+	var index: int = click_level - 1
+
+	if index < 0:
+		index = 0
+
+	if index >= click_upgrade_costs.size():
+		return 1200.0
+
+	return float(click_upgrade_costs[index])
 
 # =========================================================
 # BOOST
@@ -1208,25 +1234,22 @@ func _activate_boost() -> void:
 
 	if boost_active:
 
-		status_label.text = (
-			"10x Boost already active."
-		)
+		status_label.text = "10X Boost is already active."
 
 		return
 
 	# -------------------------------------------------------
-	# TEMPORARY TEST REWARD
+	# TEST MODE
 	#
-	# Later this function will be connected to a real
-	# rewarded-ad callback.
+	# This will later be replaced by a real rewarded-ad
+	# callback from AdMob.
 	# -------------------------------------------------------
 
 	boost_active = true
-
 	boost_days_left = BOOST_DURATION_DAYS
 
 	status_label.text = (
-		"10x BOOST ACTIVATED!"
+		"10X BOOST ACTIVATED! Every click pays 10X."
 	)
 
 	_refresh_ui()
@@ -1237,7 +1260,7 @@ func _activate_boost() -> void:
 
 func _hire_employee() -> void:
 
-	var cost := _employee_cost()
+	var cost: float = _employee_cost()
 
 	if cash < cost:
 
@@ -1249,20 +1272,16 @@ func _hire_employee() -> void:
 		return
 
 	cash -= cost
-
 	employee_count += 1
 
 	status_label.text = (
-		"Employee hired. Team size: %d"
+		"Employee hired. Team size: %d."
 		% employee_count
 	)
 
 	_recalculate_businesses()
-
 	_refresh_ui()
-
 	_save_game()
-
 	_check_achievements()
 
 
@@ -1279,30 +1298,27 @@ func _employee_cost() -> float:
 
 func _hire_manager() -> void:
 
-	var cost := _manager_cost()
+	var cost: float = _manager_cost()
 
 	if cash < cost:
 
 		status_label.text = (
-			"Need $%s for manager."
+			"Need $%s to hire a manager."
 			% _money(cost)
 		)
 
 		return
 
 	cash -= cost
-
 	manager_count += 1
 
 	status_label.text = (
-		"Manager hired. Managers: %d"
+		"Manager hired. Managers: %d."
 		% manager_count
 	)
 
 	_recalculate_businesses()
-
 	_refresh_ui()
-
 	_save_game()
 
 
@@ -1318,31 +1334,26 @@ func _manager_cost() -> float:
 # =========================================================
 
 func _select_retail() -> void:
-
 	_select_business(0)
 
 
 func _select_carwash() -> void:
-
 	_select_business(1)
 
 
 func _select_coffee() -> void:
-
 	_select_business(2)
 
 
 func _select_supermarket() -> void:
-
 	_select_business(3)
 
 
 func _select_restaurant() -> void:
-
 	_select_business(4)
 
 # =========================================================
-# BUSINESS
+# BUSINESS SELECT / UNLOCK
 # =========================================================
 
 func _select_business(index: int) -> void:
@@ -1357,9 +1368,11 @@ func _select_business(index: int) -> void:
 	# UNLOCK
 	# -------------------------------------------------------
 
-	if not unlocked_businesses[index]:
+	if not bool(unlocked_businesses[index]):
 
-		var cost: float = business_unlock_costs[index]
+		var cost: float = float(
+			business_unlock_costs[index]
+		)
 
 		if cash < cost:
 
@@ -1376,22 +1389,17 @@ func _select_business(index: int) -> void:
 		cash -= cost
 
 		unlocked_businesses[index] = true
-
 		business_levels[index] = 1
-
 		selected_business = index
 
 		status_label.text = (
-			"%s is now part of your business portfolio!"
+			"%s joined your business portfolio!"
 			% business_names[index]
 		)
 
 		_recalculate_businesses()
-
 		_refresh_ui()
-
 		_save_game()
-
 		_check_achievements()
 
 		return
@@ -1418,7 +1426,18 @@ func _upgrade_selected_business() -> void:
 	if selected_business < 0:
 		return
 
-	var cost := _business_upgrade_cost(
+	if selected_business >= business_names.size():
+		return
+
+	if not bool(unlocked_businesses[selected_business]):
+
+		status_label.text = (
+			"Unlock this business first."
+		)
+
+		return
+
+	var cost: float = _business_upgrade_cost(
 		selected_business
 	)
 
@@ -1449,27 +1468,31 @@ func _upgrade_selected_business() -> void:
 	)
 
 	_refresh_ui()
-
 	_save_game()
 
 
 func _business_upgrade_cost(index: int) -> float:
 
-	if index < 0 or index >= business_names.size():
+	if index < 0:
 		return 0.0
 
-	var level: int = business_levels[index]
+	if index >= business_names.size():
+		return 0.0
 
-	if level <= 0:
+	var level: int = int(
+		business_levels[index]
+	)
+
+	if level < 1:
 		level = 1
 
-	return (
-		business_unlock_costs[index] *
-		0.45 *
-		pow(
-			1.6,
-			float(level - 1)
-		)
+	var base_cost: float = float(
+		business_upgrade_base_cost[index]
+	)
+
+	return base_cost * pow(
+		1.60,
+		float(level - 1)
 	)
 
 # =========================================================
@@ -1482,9 +1505,17 @@ func _recalculate_businesses() -> void:
 	company_expenses = 0.0
 	company_profit = 0.0
 
+	var company_multiplier: float = 1.0
+
+	if company_unlocked and company_level > 0:
+
+		company_multiplier += (
+			float(company_level - 1) * 0.10
+		)
+
 	for i in range(business_names.size()):
 
-		if not unlocked_businesses[i]:
+		if not bool(unlocked_businesses[i]):
 
 			business_monthly_revenue[i] = 0.0
 			business_monthly_expenses[i] = 0.0
@@ -1492,60 +1523,64 @@ func _recalculate_businesses() -> void:
 
 			continue
 
-		var level: int = business_levels[i]
+		var level: int = int(
+			business_levels[i]
+		)
 
 		if level < 1:
 			level = 1
 
-		var revenue := (
-			business_base_revenue[i] *
+		var revenue: float = (
+			float(business_base_revenue[i]) *
 			pow(
 				business_level_multiplier,
 				float(level - 1)
 			)
 		)
 
-		var expenses := (
-			business_base_expenses[i] *
+		var expenses: float = (
+			float(business_base_expenses[i]) *
 			pow(
-				1.48,
+				business_expense_multiplier,
 				float(level - 1)
 			)
 		)
 
-		# Employees improve revenue.
+		# Employees increase operational capacity.
 		revenue *= (
 			1.0 +
 			float(employee_count) * 0.025
 		)
 
-		# Managers reduce operating inefficiency.
+		# Managers reduce operating expenses.
 		expenses *= max(
 			0.60,
 			1.0 -
 			float(manager_count) * 0.04
 		)
 
-		var profit_before_tax := (
+		# Company improves portfolio performance.
+		revenue *= company_multiplier
+
+		var profit_before_tax: float = (
 			revenue -
 			expenses
 		)
 
 		if profit_before_tax < 0.0:
-
 			profit_before_tax = 0.0
 
-		var tax := (
-			profit_before_tax *
-			0.15
+		var tax: float = (
+			profit_before_tax * 0.15
 		)
 
-		var net_profit := (
+		var net_profit: float = (
 			profit_before_tax -
 			tax
 		)
 
 		business_monthly_revenue[i] = revenue
+
 		business_monthly_expenses[i] = (
 			expenses +
 			tax
@@ -1554,11 +1589,15 @@ func _recalculate_businesses() -> void:
 		business_monthly_profit[i] = net_profit
 
 		company_revenue += revenue
-		company_expenses += expenses + tax
+		company_expenses += (
+			expenses +
+			tax
+		)
+
 		company_profit += net_profit
 
 # =========================================================
-# MONTHLY PROCESS
+# MONTHLY BUSINESS PROCESS
 # =========================================================
 
 func _process_monthly_businesses() -> void:
@@ -1568,18 +1607,20 @@ func _process_monthly_businesses() -> void:
 	if company_profit <= 0.0:
 
 		status_label.text = (
-			"Month closed. Your businesses made no net profit."
+			"Month closed. No net business profit this month."
 		)
 
 		return
 
 	cash += company_profit
-
 	total_earned += company_profit
 
 	status_label.text = (
-		"Monthly profit received: +$%s"
-		% _money(company_profit)
+		"Month %d closed. Profit received: +$%s"
+		% [
+			game_month - 1,
+			_money(company_profit)
+		]
 	)
 
 	_check_achievements()
@@ -1598,6 +1639,17 @@ func _form_company() -> void:
 
 		return
 
+	var owned: int = _owned_business_count()
+
+	if owned < COMPANY_REQUIRED_BUSINESSES:
+
+		status_label.text = (
+			"Own at least %d businesses first."
+			% COMPANY_REQUIRED_BUSINESSES
+		)
+
+		return
+
 	if cash < COMPANY_UNLOCK_COST:
 
 		status_label.text = (
@@ -1607,30 +1659,19 @@ func _form_company() -> void:
 
 		return
 
-	var owned := _owned_business_count()
-
-	if owned < 2:
-
-		status_label.text = (
-			"Own at least 2 businesses before forming a company."
-		)
-
-		return
-
 	cash -= COMPANY_UNLOCK_COST
 
 	company_unlocked = true
-
 	company_level = 1
+
+	_recalculate_businesses()
 
 	status_label.text = (
 		"COMPANY FOUNDED! You are now a corporate owner."
 	)
 
 	_refresh_ui()
-
 	_save_game()
-
 	_check_achievements()
 
 # =========================================================
@@ -1647,7 +1688,7 @@ func _upgrade_company() -> void:
 
 		return
 
-	var cost := _company_upgrade_cost()
+	var cost: float = _company_upgrade_cost()
 
 	if cash < cost:
 
@@ -1659,7 +1700,6 @@ func _upgrade_company() -> void:
 		return
 
 	cash -= cost
-
 	company_level += 1
 
 	_recalculate_businesses()
@@ -1670,18 +1710,17 @@ func _upgrade_company() -> void:
 	)
 
 	_refresh_ui()
-
 	_save_game()
 
 
 func _company_upgrade_cost() -> float:
 
-	return (
-		25000.0 *
-		pow(
-			1.75,
-			float(company_level - 1)
-		)
+	if company_level < 1:
+		return COMPANY_UNLOCK_COST
+
+	return 25000.0 * pow(
+		1.75,
+		float(company_level - 1)
 	)
 
 # =========================================================
@@ -1690,11 +1729,11 @@ func _company_upgrade_cost() -> float:
 
 func _owned_business_count() -> int:
 
-	var count := 0
+	var count: int = 0
 
 	for unlocked in unlocked_businesses:
 
-		if unlocked:
+		if bool(unlocked):
 			count += 1
 
 	return count
@@ -1708,24 +1747,35 @@ func _refresh_ui() -> void:
 	if cash_label == null:
 		return
 
+	# -------------------------------------------------------
+	# CASH
+	# -------------------------------------------------------
+
 	cash_label.text = (
 		"$%s"
 		% _money(cash)
 	)
 
-	var boosted_click := click_value
+	# -------------------------------------------------------
+	# CLICK
+	# -------------------------------------------------------
+
+	var displayed_click: float = click_value
 
 	if boost_active:
-
-		boosted_click *= BOOST_MULTIPLIER
+		displayed_click *= BOOST_MULTIPLIER
 
 	click_label.text = (
 		"Per Click: $%s"
-		% _money(boosted_click)
+		% _money(displayed_click)
 	)
 
+	# -------------------------------------------------------
+	# TIME
+	# -------------------------------------------------------
+
 	time_label.text = (
-		"Day %d / %d • Month %d"
+		"Day %d / %d  •  Month %d"
 		% [
 			game_day,
 			DAYS_PER_MONTH,
@@ -1733,22 +1783,30 @@ func _refresh_ui() -> void:
 		]
 	)
 
+	# -------------------------------------------------------
+	# BOOST
+	# -------------------------------------------------------
+
 	if boost_active:
 
 		boost_label.text = (
-			"10X BOOST ACTIVE • %s GAME DAYS LEFT"
+			"10X BOOST ACTIVE  •  %s GAME DAYS LEFT"
 			% _money(boost_days_left)
 		)
 
 	else:
 
 		boost_label.text = (
-			"BOOST OFF • WATCH AD FOR 10X"
+			"BOOST OFF  •  WATCH AD FOR 10X"
 		)
+
+	# -------------------------------------------------------
+	# EARN BUTTON
+	# -------------------------------------------------------
 
 	earn_button.text = (
 		"EARN MONEY\n+$%s"
-		% _money(boosted_click)
+		% _money(displayed_click)
 	)
 
 	# -------------------------------------------------------
@@ -1758,24 +1816,26 @@ func _refresh_ui() -> void:
 	if click_value >= MAX_CLICK_VALUE:
 
 		click_upgrade_button.text = (
-			"CLICK LEVEL MAXED\n$10 / CLICK\nBUILD A BUSINESS NEXT"
+			"CLICKER MAXED\n"
+			"$10 / CLICK\n"
+			"BUILD A BUSINESS NEXT"
 		)
 
 	else:
 
+		var next_click: float = min(
+			MAX_CLICK_VALUE,
+			click_value + 1.0
+		)
+
 		click_upgrade_button.text = (
-			"UPGRADE CLICK\n$%s → $%s\nCOST: $%s"
+			"UPGRADE CLICK\n"
+			"$%s  ->  $%s PER CLICK\n"
+			"COST: $%s"
 			% [
 				_money(click_value),
-				_money(
-					min(
-						MAX_CLICK_VALUE,
-						click_value + 1.0
-					)
-				),
-				_money(
-					_click_upgrade_cost()
-				)
+				_money(next_click),
+				_money(_click_upgrade_cost())
 			]
 		)
 
@@ -1784,7 +1844,9 @@ func _refresh_ui() -> void:
 	# -------------------------------------------------------
 
 	employee_button.text = (
-		"HIRE EMPLOYEE\nCost: $%s\nEmployees: %d"
+		"HIRE EMPLOYEE\n"
+		"Cost: $%s\n"
+		"Employees: %d"
 		% [
 			_money(_employee_cost()),
 			employee_count
@@ -1792,7 +1854,9 @@ func _refresh_ui() -> void:
 	)
 
 	manager_button.text = (
-		"HIRE MANAGER\nCost: $%s\nManagers: %d"
+		"HIRE MANAGER\n"
+		"Cost: $%s\n"
+		"Managers: %d"
 		% [
 			_money(_manager_cost()),
 			manager_count
@@ -1800,7 +1864,7 @@ func _refresh_ui() -> void:
 	)
 
 	# -------------------------------------------------------
-	# BUSINESSES
+	# BUSINESS BUTTONS
 	# -------------------------------------------------------
 
 	retail_button.text = _business_button_text(0)
@@ -1808,6 +1872,33 @@ func _refresh_ui() -> void:
 	coffee_button.text = _business_button_text(2)
 	supermarket_button.text = _business_button_text(3)
 	restaurant_button.text = _business_button_text(4)
+
+	# -------------------------------------------------------
+	# SELECTED BUSINESS UPGRADE
+	# -------------------------------------------------------
+
+	if unlocked_businesses[selected_business]:
+
+		business_upgrade_button.text = (
+			"UPGRADE %s\n"
+			"Current Level: %d\n"
+			"Cost: $%s"
+			% [
+				business_names[selected_business],
+				business_levels[selected_business],
+				_money(
+					_business_upgrade_cost(
+						selected_business
+					)
+				)
+			]
+		)
+
+	else:
+
+		business_upgrade_button.text = (
+			"SELECT AN UNLOCKED BUSINESS TO UPGRADE"
+		)
 
 	# -------------------------------------------------------
 	# MONTHLY REPORT
@@ -1836,8 +1927,11 @@ func _refresh_ui() -> void:
 		company_button.text = (
 			"FORM COMPANY\n"
 			"Cost: $%s\n"
-			"Requires 2 Businesses"
-			% _money(COMPANY_UNLOCK_COST)
+			"Requires %d Businesses"
+			% [
+				_money(COMPANY_UNLOCK_COST),
+				COMPANY_REQUIRED_BUSINESSES
+			]
 		)
 
 		company_upgrade_button.text = (
@@ -1887,11 +1981,12 @@ func _refresh_ui() -> void:
 
 	if mission_index < mission_names.size():
 
-		var progress := mission_progress()
+		var progress: float = mission_progress()
 
 		mission_label.text = (
-			"MISSION %d\n%s\n\n"
-			"Progress: %s / %s\n"
+			"MISSION %d\n"
+			"%s\n\n"
+			"Progress: $%s / $%s\n"
 			"Reward: $%s"
 			% [
 				mission_index + 1,
@@ -1902,22 +1997,52 @@ func _refresh_ui() -> void:
 			]
 		)
 
+		# Special mission formatting.
+		if mission_index == 2:
+
+			mission_label.text = (
+				"MISSION 3\n"
+				"Own 2 businesses\n\n"
+				"Progress: %d / 2 businesses\n"
+				"Reward: $%s"
+				% [
+					_owned_business_count(),
+					_money(mission_rewards[mission_index])
+				]
+			)
+
+		if mission_index == 3:
+
+			mission_label.text = (
+				"MISSION 4\n"
+				"Complete your first month\n\n"
+				"Progress: %d / 1 month\n"
+				"Reward: $%s"
+				% [
+					total_months_completed,
+					_money(mission_rewards[mission_index])
+				]
+			)
+
 	else:
 
 		mission_label.text = (
 			"ALL MISSIONS COMPLETED\n"
-			"You have completed the starter campaign."
+			"Starter campaign completed."
 		)
 
 	# -------------------------------------------------------
 	# ACHIEVEMENTS
 	# -------------------------------------------------------
 
-	var achievement_text := ""
+	var achievement_text: String = ""
 
 	for i in range(achievement_names.size()):
 
-		var mark := "[DONE]" if achievement_earned[i] else "[LOCKED]"
+		var mark: String = "[DONE]"
+
+		if not bool(achievement_earned[i]):
+			mark = "[LOCKED]"
 
 		achievement_text += (
 			"%s  %s\n"
@@ -1933,6 +2058,11 @@ func _refresh_ui() -> void:
 	# STATS
 	# -------------------------------------------------------
 
+	var company_status: String = "ACTIVE"
+
+	if not company_unlocked:
+		company_status = "NOT FORMED"
+
 	stats_label.text = (
 		"Cash: $%s\n"
 		"Total Earnings: $%s\n"
@@ -1940,6 +2070,7 @@ func _refresh_ui() -> void:
 		"Employees: %d\n"
 		"Managers: %d\n"
 		"Months Completed: %d\n"
+		"Click Value: $%s\n"
 		"Company: %s"
 		% [
 			_money(cash),
@@ -1949,7 +2080,8 @@ func _refresh_ui() -> void:
 			employee_count,
 			manager_count,
 			total_months_completed,
-			"ACTIVE" if company_unlocked else "NOT FORMED"
+			_money(click_value),
+			company_status
 		]
 	)
 
@@ -1959,22 +2091,21 @@ func _refresh_ui() -> void:
 
 func _business_button_text(index: int) -> String:
 
-	if unlocked_businesses[index]:
+	if bool(unlocked_businesses[index]):
 
-		var selected := ""
+		var selected_text: String = ""
 
 		if selected_business == index:
-
-			selected = " • SELECTED"
+			selected_text = "  [SELECTED]"
 
 		return (
 			"%s%s\n"
 			"Level %d\n"
 			"Monthly Profit: $%s\n"
-			"OPERATE / SELECT"
+			"SELECT / OPERATE"
 			% [
 				business_names[index],
-				selected,
+				selected_text,
 				business_levels[index],
 				_money(
 					business_monthly_profit[index]
@@ -2000,7 +2131,6 @@ func _business_button_text(index: int) -> String:
 func mission_progress() -> float:
 
 	if mission_index >= mission_names.size():
-
 		return 0.0
 
 	match mission_index:
@@ -2041,100 +2171,97 @@ func mission_progress() -> float:
 
 func _check_achievements() -> void:
 
+	if status_label == null:
+		return
+
 	# -------------------------------------------------------
-	# First Dollar
+	# FIRST DOLLAR
 	# -------------------------------------------------------
 
-	if not achievement_earned[0]:
+	if not bool(achievement_earned[0]):
 
 		if total_earned >= 1.0:
 
 			achievement_earned[0] = true
-
 			cash += 25.0
 
 			status_label.text = (
-				"Achievement: First Dollar! +$25"
+				"Achievement unlocked: First Dollar! +$25"
 			)
 
 	# -------------------------------------------------------
-	# Serious Earner
+	# SERIOUS EARNER
 	# -------------------------------------------------------
 
-	if not achievement_earned[1]:
+	if not bool(achievement_earned[1]):
 
 		if total_earned >= 2500.0:
 
 			achievement_earned[1] = true
-
 			cash += 250.0
 
 			status_label.text = (
-				"Achievement: Serious Earner! +$250"
+				"Achievement unlocked: Serious Earner! +$250"
 			)
 
 	# -------------------------------------------------------
-	# Business Owner
+	# BUSINESS OWNER
 	# -------------------------------------------------------
 
-	if not achievement_earned[2]:
+	if not bool(achievement_earned[2]):
 
 		if _owned_business_count() >= 2:
 
 			achievement_earned[2] = true
-
 			cash += 1000.0
 
 			status_label.text = (
-				"Achievement: Business Owner! +$1,000"
+				"Achievement unlocked: Business Owner! +$1,000"
 			)
 
 	# -------------------------------------------------------
-	# Monthly Operator
+	# MONTHLY OPERATOR
 	# -------------------------------------------------------
 
-	if not achievement_earned[3]:
+	if not bool(achievement_earned[3]):
 
 		if total_months_completed >= 1:
 
 			achievement_earned[3] = true
-
 			cash += 2500.0
 
 			status_label.text = (
-				"Achievement: Monthly Operator! +$2,500"
+				"Achievement unlocked: Monthly Operator! +$2,500"
 			)
 
 	# -------------------------------------------------------
-	# Company Founder
+	# COMPANY FOUNDER
 	# -------------------------------------------------------
 
-	if not achievement_earned[4]:
+	if not bool(achievement_earned[4]):
 
 		if company_unlocked:
 
 			achievement_earned[4] = true
-
 			cash += 10000.0
 
 			status_label.text = (
-				"Achievement: Company Founder! +$10,000"
+				"Achievement unlocked: Company Founder! +$10,000"
 			)
 
 	# -------------------------------------------------------
-	# Business Tycoon
+	# BUSINESS TYCOON
 	# -------------------------------------------------------
 
-	if not achievement_earned[5]:
+	if not bool(achievement_earned[5]):
 
 		if total_earned >= 1000000.0:
 
 			achievement_earned[5] = true
-
 			cash += 50000.0
 
 			status_label.text = (
-				"Achievement: Business Tycoon! +$50,000"
+				"Achievement unlocked: Business Tycoon! +$50,000"
 			)
 
 	_check_missions()
@@ -2146,10 +2273,9 @@ func _check_achievements() -> void:
 func _check_missions() -> void:
 
 	if mission_index >= mission_names.size():
-
 		return
 
-	var completed := false
+	var completed: bool = false
 
 	match mission_index:
 
@@ -2160,17 +2286,23 @@ func _check_missions() -> void:
 			completed = total_earned >= 2500.0
 
 		2:
-			completed = _owned_business_count() >= 2
+			completed = (
+				_owned_business_count() >= 2
+			)
 
 		3:
-			completed = total_months_completed >= 1
+			completed = (
+				total_months_completed >= 1
+			)
 
 		4:
 			completed = total_earned >= 100000.0
 
 	if completed:
 
-		var reward := mission_rewards[mission_index]
+		var reward: float = float(
+			mission_rewards[mission_index]
+		)
 
 		cash += reward
 
@@ -2211,9 +2343,7 @@ func _money(value: float) -> String:
 
 	if value >= 1000.0:
 
-		return "%.0f" % (
-			value
-		)
+		return "%.0f" % value
 
 	return "%.0f" % value
 
@@ -2223,7 +2353,7 @@ func _money(value: float) -> String:
 
 func _save_game() -> void:
 
-	var data := {
+	var data: Dictionary = {
 		"cash": cash,
 		"total_earned": total_earned,
 
@@ -2236,15 +2366,23 @@ func _save_game() -> void:
 		"boost_active": boost_active,
 		"boost_days_left": boost_days_left,
 
-		"total_months_completed": total_months_completed,
+		"total_months_completed":
+			total_months_completed,
 
-		"employee_count": employee_count,
-		"manager_count": manager_count,
+		"employee_count":
+			employee_count,
 
-		"selected_business": selected_business,
+		"manager_count":
+			manager_count,
 
-		"unlocked_businesses": unlocked_businesses,
-		"business_levels": business_levels,
+		"selected_business":
+			selected_business,
+
+		"unlocked_businesses":
+			unlocked_businesses,
+
+		"business_levels":
+			business_levels,
 
 		"business_monthly_revenue":
 			business_monthly_revenue,
@@ -2255,25 +2393,31 @@ func _save_game() -> void:
 		"business_monthly_profit":
 			business_monthly_profit,
 
-		"company_unlocked": company_unlocked,
-		"company_level": company_level,
+		"company_unlocked":
+			company_unlocked,
 
-		"mission_index": mission_index,
-		"missions_completed": missions_completed,
+		"company_level":
+			company_level,
 
-		"achievement_earned": achievement_earned,
+		"mission_index":
+			mission_index,
+
+		"missions_completed":
+			missions_completed,
+
+		"achievement_earned":
+			achievement_earned,
 
 		"last_save_time":
 			Time.get_unix_time_from_system()
 	}
 
-	var file := FileAccess.open(
+	var file: FileAccess = FileAccess.open(
 		SAVE_PATH,
 		FileAccess.WRITE
 	)
 
 	if file == null:
-
 		return
 
 	file.store_string(
@@ -2289,86 +2433,98 @@ func _save_game() -> void:
 func _load_game() -> void:
 
 	if not FileAccess.file_exists(SAVE_PATH):
-
 		return
 
-	var file := FileAccess.open(
+	var file: FileAccess = FileAccess.open(
 		SAVE_PATH,
 		FileAccess.READ
 	)
 
 	if file == null:
-
 		return
 
-	var text := file.get_as_text()
+	var text: String = file.get_as_text()
 
 	file.close()
 
-	var json := JSON.new()
+	var json: JSON = JSON.new()
 
 	if json.parse(text) != OK:
-
 		return
 
-	var data = json.data
+	var data: Variant = json.data
 
 	if typeof(data) != TYPE_DICTIONARY:
-
 		return
+
+	var saved: Dictionary = data
 
 	# -------------------------------------------------------
 	# BASIC
 	# -------------------------------------------------------
 
 	cash = float(
-		data.get(
+		saved.get(
 			"cash",
 			0.0
 		)
 	)
 
 	total_earned = float(
-		data.get(
+		saved.get(
 			"total_earned",
 			0.0
 		)
 	)
 
 	click_value = float(
-		data.get(
+		saved.get(
 			"click_value",
 			1.0
 		)
 	)
 
 	click_level = int(
-		data.get(
+		saved.get(
 			"click_level",
 			1
 		)
 	)
 
-	click_value = min(
-		click_value,
-		MAX_CLICK_VALUE
-	)
+	if click_value < 1.0:
+		click_value = 1.0
+
+	if click_value > MAX_CLICK_VALUE:
+		click_value = MAX_CLICK_VALUE
+
+	if click_level < 1:
+		click_level = 1
+
+	if click_level > 10:
+		click_level = 10
 
 	# -------------------------------------------------------
 	# TIME
 	# -------------------------------------------------------
 
 	game_day = int(
-		data.get(
+		saved.get(
 			"game_day",
 			1
 		)
 	)
 
 	game_month = int(
-		data.get(
+		saved.get(
 			"game_month",
 			1
+		)
+	)
+
+	total_months_completed = int(
+		saved.get(
+			"total_months_completed",
+			0
 		)
 	)
 
@@ -2378,26 +2534,25 @@ func _load_game() -> void:
 	if game_day > DAYS_PER_MONTH:
 		game_day = 1
 
-	total_months_completed = int(
-		data.get(
-			"total_months_completed",
-			0
-		)
-	)
+	if game_month < 1:
+		game_month = 1
+
+	if total_months_completed < 0:
+		total_months_completed = 0
 
 	# -------------------------------------------------------
 	# BOOST
 	# -------------------------------------------------------
 
 	boost_active = bool(
-		data.get(
+		saved.get(
 			"boost_active",
 			false
 		)
 	)
 
 	boost_days_left = float(
-		data.get(
+		saved.get(
 			"boost_days_left",
 			0.0
 		)
@@ -2413,184 +2568,160 @@ func _load_game() -> void:
 	# -------------------------------------------------------
 
 	employee_count = int(
-		data.get(
+		saved.get(
 			"employee_count",
 			0
 		)
 	)
 
 	manager_count = int(
-		data.get(
+		saved.get(
 			"manager_count",
 			0
 		)
 	)
+
+	if employee_count < 0:
+		employee_count = 0
+
+	if manager_count < 0:
+		manager_count = 0
 
 	# -------------------------------------------------------
 	# SELECTED BUSINESS
 	# -------------------------------------------------------
 
 	selected_business = int(
-		data.get(
+		saved.get(
 			"selected_business",
 			0
 		)
 	)
 
 	if selected_business < 0:
-
 		selected_business = 0
 
 	if selected_business >= business_names.size():
-
 		selected_business = 0
 
 	# -------------------------------------------------------
-	# BUSINESSES
+	# BUSINESS ARRAYS
 	# -------------------------------------------------------
 
-	var saved_unlocks = data.get(
+	var saved_unlocks: Variant = saved.get(
 		"unlocked_businesses",
 		[true, false, false, false, false]
 	)
 
-	var saved_levels = data.get(
+	var saved_levels: Variant = saved.get(
 		"business_levels",
 		[1, 0, 0, 0, 0]
 	)
 
-	var saved_revenue = data.get(
-		"business_monthly_revenue",
-		[0.0, 0.0, 0.0, 0.0, 0.0]
-	)
-
-	var saved_expenses = data.get(
-		"business_monthly_expenses",
-		[0.0, 0.0, 0.0, 0.0, 0.0]
-	)
-
-	var saved_profit = data.get(
-		"business_monthly_profit",
-		[0.0, 0.0, 0.0, 0.0, 0.0]
-	)
-
 	if saved_unlocks is Array:
+
+		var unlock_array: Array = saved_unlocks
 
 		for i in range(
 			min(
-				saved_unlocks.size(),
+				unlock_array.size(),
 				unlocked_businesses.size()
 			)
 		):
 
-			unlocked_businesses[i] = (
-				bool(saved_unlocks[i])
+			unlocked_businesses[i] = bool(
+				unlock_array[i]
 			)
 
-	# Retail must always exist.
+	# Retail always exists.
 	unlocked_businesses[0] = true
 
 	if saved_levels is Array:
 
+		var level_array: Array = saved_levels
+
 		for i in range(
 			min(
-				saved_levels.size(),
+				level_array.size(),
 				business_levels.size()
 			)
 		):
 
-			business_levels[i] = (
-				int(saved_levels[i])
+			business_levels[i] = int(
+				level_array[i]
 			)
 
-	if saved_revenue is Array:
+	# Ensure valid levels.
+	for i in range(business_levels.size()):
 
-		for i in range(
-			min(
-				saved_revenue.size(),
-				business_monthly_revenue.size()
-			)
-		):
+		if bool(unlocked_businesses[i]):
 
-			business_monthly_revenue[i] = (
-				float(saved_revenue[i])
-			)
+			if int(business_levels[i]) < 1:
+				business_levels[i] = 1
 
-	if saved_expenses is Array:
+		else:
 
-		for i in range(
-			min(
-				saved_expenses.size(),
-				business_monthly_expenses.size()
-			)
-		):
-
-			business_monthly_expenses[i] = (
-				float(saved_expenses[i])
-			)
-
-	if saved_profit is Array:
-
-		for i in range(
-			min(
-				saved_profit.size(),
-				business_monthly_profit.size()
-			)
-		):
-
-			business_monthly_profit[i] = (
-				float(saved_profit[i])
-			)
+			business_levels[i] = 0
 
 	# -------------------------------------------------------
 	# COMPANY
 	# -------------------------------------------------------
 
 	company_unlocked = bool(
-		data.get(
+		saved.get(
 			"company_unlocked",
 			false
 		)
 	)
 
 	company_level = int(
-		data.get(
+		saved.get(
 			"company_level",
 			0
 		)
 	)
+
+	if not company_unlocked:
+
+		company_level = 0
+
+	else:
+
+		if company_level < 1:
+			company_level = 1
 
 	# -------------------------------------------------------
 	# MISSIONS
 	# -------------------------------------------------------
 
 	mission_index = int(
-		data.get(
+		saved.get(
 			"mission_index",
 			0
 		)
 	)
 
 	missions_completed = int(
-		data.get(
+		saved.get(
 			"missions_completed",
 			0
 		)
 	)
 
 	if mission_index < 0:
-
 		mission_index = 0
 
 	if mission_index > mission_names.size():
-
 		mission_index = mission_names.size()
+
+	if missions_completed < 0:
+		missions_completed = 0
 
 	# -------------------------------------------------------
 	# ACHIEVEMENTS
 	# -------------------------------------------------------
 
-	var saved_achievements = data.get(
+	var saved_achievements: Variant = saved.get(
 		"achievement_earned",
 		[
 			false,
@@ -2604,13 +2735,25 @@ func _load_game() -> void:
 
 	if saved_achievements is Array:
 
+		var achievement_array: Array = (
+			saved_achievements
+		)
+
 		for i in range(
 			min(
-				saved_achievements.size(),
+				achievement_array.size(),
 				achievement_earned.size()
 			)
 		):
 
-			achievement_earned[i] = (
-				bool(saved_achievements[i])
+			achievement_earned[i] = bool(
+				achievement_array[i]
 			)
+
+	# -------------------------------------------------------
+	# RESET RUNTIME TIMER
+	# -------------------------------------------------------
+
+	day_timer = 0.0
+
+	_recalculate_businesses()
