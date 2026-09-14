@@ -839,7 +839,14 @@ func _refresh_ui() -> void:
 		if unlocked:
 			owned += 1
 
-		stats_label.text = "💵 Cash: ₹%s\n📈 Total Revenue: ₹%s\n🏢 Businesses: %d / %d\n👔 Managers: %d\n👷 Employees: %d\n⬆️ Upgrade Level: %d" % [
+			var owned := 0
+
+	for unlocked in unlocked_businesses:
+
+		if unlocked:
+			owned += 1
+
+	stats_label.text = "💵 Cash: ₹%s\n📈 Total Revenue: ₹%s\n🏢 Businesses: %d / %d\n👔 Managers: %d\n👷 Employees: %d\n⬆️ Upgrade Level: %d" % [
 		_money(cash),
 		_money(total_earned),
 		owned,
