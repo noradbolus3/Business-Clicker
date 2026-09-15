@@ -22,14 +22,15 @@ func _ready() -> void:
 	ui = UIManager.new()
 
 	var callbacks: Dictionary = {
-		"earn": _on_earn_pressed,
-		"upgrade_click": _on_upgrade_click_pressed,
-		"boost": _on_boost_pressed,
-		"employee": _on_employee_pressed,
-		"manager": _on_manager_pressed,
-		"business": _on_business_pressed,
-		"company": _on_company_pressed
-	}
+	"earn": _on_earn_pressed,
+	"upgrade_click": _on_upgrade_click_pressed,
+	"boost": _on_boost_pressed,
+	"employee": _on_employee_pressed,
+	"manager": _on_manager_pressed,
+	"business": _on_business_pressed,
+	"business_upgrade": _upgrade_selected_business,
+	"company": _on_company_pressed
+}
 
 	ui.build(
 		self,
