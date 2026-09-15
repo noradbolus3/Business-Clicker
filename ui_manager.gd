@@ -26,6 +26,7 @@ var employee_button: Button
 var manager_button: Button
 
 var business_buttons: Array[Button] = []
+var business_upgrade_button: Button
 
 var company_button: Button
 
@@ -315,6 +316,25 @@ func _create_ui(callbacks: Dictionary) -> void:
 		main_box.add_child(
 			business_button
 		)
+
+
+	# =====================================================
+	# BUSINESS UPGRADE
+	# =====================================================
+
+	business_upgrade_button = _make_button(
+		"UPGRADE SELECTED BUSINESS"
+	)
+
+	business_upgrade_button.custom_minimum_size.y = 72
+
+	business_upgrade_button.pressed.connect(
+		callbacks["business_upgrade"]
+	)
+
+	main_box.add_child(
+		business_upgrade_button
+	)
 
 
 	# =====================================================
@@ -696,8 +716,11 @@ func refresh(
 		var button: Button = business_buttons[index]
 
 		if not businesses.is_valid_business(index):
+
 			button.text = "INVALID BUSINESS"
+
 			button.disabled = true
+
 			continue
 
 
@@ -718,7 +741,9 @@ func refresh(
 			var selected_text: String = ""
 
 			if businesses.selected_business == index:
+
 				selected_text = "  [SELECTED]"
+
 
 			button.text = "%s%s\nLV %d  •  Revenue $%s/mo\nProfit $%s/mo" % [
 				businesses.get_business_name(index),
@@ -745,6 +770,51 @@ func refresh(
 
 
 	# =====================================================
+	# BUSINESS UPGRADE BUTTON
+	# =====================================================
+
+	var selected_business: int = businesses.selected_business
+
+	if not businesses.is_valid_business(
+		selected_business
+	):
+
+		business_upgrade_button.text = "SELECT A BUSINESS"
+
+		business_upgrade_button.disabled = true
+
+	elif not businesses.is_unlocked(
+		selected_business
+	):
+
+		business_upgrade_button.text = "SELECT AN UNLOCKED BUSINESS"
+
+		business_upgrade_button.disabled = true
+
+	else:
+
+		var selected_name: String = businesses.get_business_name(
+			selected_business
+		)
+
+		var selected_level: int = businesses.get_level(
+			selected_business
+		)
+
+		var upgrade_cost: float = businesses.get_upgrade_cost(
+			selected_business
+		)
+
+		business_upgrade_button.text = "UPGRADE %s  •  LV %d  •  COST $%s" % [
+			selected_name,
+			selected_level,
+			_money(upgrade_cost)
+		]
+
+		business_upgrade_button.disabled = state.cash < upgrade_cost
+
+
+	# =====================================================
 	# COMPANY
 	# =====================================================
 
@@ -768,9 +838,11 @@ func refresh(
 		var can_form: bool = true
 
 		if owned_count < CompanyManager.COMPANY_REQUIRED_BUSINESSES:
+
 			can_form = false
 
 		if state.cash < CompanyManager.COMPANY_UNLOCK_COST:
+
 			can_form = false
 
 		company_button.disabled = not can_form
@@ -816,6 +888,7 @@ func refresh(
 	var company_status: String = "NOT FORMED"
 
 	if company.is_active():
+
 		company_status = "ACTIVE"
 
 
@@ -869,9 +942,11 @@ func _get_click_upgrade_cost(
 	var index: int = level - 1
 
 	if index < 0:
+
 		return costs[0]
 
 	if index >= costs.size():
+
 		return costs[costs.size() - 1]
 
 	return costs[index]
@@ -891,11 +966,13 @@ func _money(
 			value / 1000000000000.0
 		)
 
+
 	if value >= 1000000000.0:
 
 		return "%.2fB" % (
 			value / 1000000000.0
 		)
+
 
 	if value >= 1000000.0:
 
@@ -903,8 +980,10 @@ func _money(
 			value / 1000000.0
 		)
 
+
 	if value >= 1000.0:
 
 		return "%.0f" % value
+
 
 	return "%.0f" % value
