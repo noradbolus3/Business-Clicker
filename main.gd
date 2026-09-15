@@ -746,13 +746,12 @@ func _load_game() -> void:
 		)
 	)
 
-		state.manager_count = int(
+			state.manager_count = int(
 		state_data.get(
 			"manager_count",
 			0
 		)
 	)
-
 
 	# -------------------------------------------------------
 	# BUSINESSES
