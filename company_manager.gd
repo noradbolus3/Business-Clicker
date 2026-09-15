@@ -1,12 +1,30 @@
 extends RefCounted
 class_name CompanyManager
 
+
+# ============================================================
+# COMPANY CONSTANTS
+# ============================================================
+
 const COMPANY_UNLOCK_COST: float = 100000.0
 const COMPANY_REQUIRED_BUSINESSES: int = 2
+
+const COMPANY_BASE_UPGRADE_COST: float = 25000.0
+const COMPANY_UPGRADE_COST_MULTIPLIER: float = 1.75
+const COMPANY_REVENUE_BONUS_PER_LEVEL: float = 0.10
+
+
+# ============================================================
+# COMPANY STATE
+# ============================================================
 
 var company_unlocked: bool = false
 var company_level: int = 0
 
+
+# ============================================================
+# FORM COMPANY
+# ============================================================
 
 func can_form_company(
 	owned_businesses: int,
@@ -64,6 +82,10 @@ func form_company(
 	}
 
 
+# ============================================================
+# COMPANY UPGRADE
+# ============================================================
+
 func can_upgrade_company(cash: float) -> Dictionary:
 
 	if not company_unlocked:
@@ -112,11 +134,15 @@ func get_upgrade_cost() -> float:
 	if company_level < 1:
 		return COMPANY_UNLOCK_COST
 
-	return 25000.0 * pow(
-		1.75,
+	return COMPANY_BASE_UPGRADE_COST * pow(
+		COMPANY_UPGRADE_COST_MULTIPLIER,
 		float(company_level - 1)
 	)
 
+
+# ============================================================
+# COMPANY EFFECTS
+# ============================================================
 
 func get_revenue_multiplier() -> float:
 
@@ -128,13 +154,17 @@ func get_revenue_multiplier() -> float:
 
 	return 1.0 + (
 		float(company_level - 1) *
-		0.10
+		COMPANY_REVENUE_BONUS_PER_LEVEL
 	)
 
 
 func get_monthly_multiplier() -> float:
 	return get_revenue_multiplier()
 
+
+# ============================================================
+# COMPANY STATUS
+# ============================================================
 
 func get_level() -> int:
 	return company_level
@@ -152,12 +182,20 @@ func get_status_text() -> String:
 	return "Company: ACTIVE  •  Level %d" % company_level
 
 
+# ============================================================
+# SAVE
+# ============================================================
+
 func get_save_data() -> Dictionary:
 	return {
 		"company_unlocked": company_unlocked,
 		"company_level": company_level
 	}
 
+
+# ============================================================
+# LOAD
+# ============================================================
 
 func load_save_data(data: Dictionary) -> void:
 
