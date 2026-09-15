@@ -2,6 +2,10 @@ extends RefCounted
 class_name SaveManager
 
 
+# ============================================================
+# SAVE GAME
+# ============================================================
+
 func save_game(
 	save_path: String,
 	data: Dictionary
@@ -15,14 +19,22 @@ func save_game(
 	if file == null:
 		return false
 
+	var json_text: String = JSON.stringify(
+		data
+	)
+
 	file.store_string(
-		JSON.stringify(data)
+		json_text
 	)
 
 	file.close()
 
 	return true
 
+
+# ============================================================
+# LOAD GAME
+# ============================================================
 
 func load_game(
 	save_path: String
@@ -63,6 +75,10 @@ func load_game(
 	return json.data as Dictionary
 
 
+# ============================================================
+# CHECK SAVE
+# ============================================================
+
 func has_save(
 	save_path: String
 ) -> bool:
@@ -71,6 +87,10 @@ func has_save(
 		save_path
 	)
 
+
+# ============================================================
+# DELETE SAVE
+# ============================================================
 
 func delete_save(
 	save_path: String
