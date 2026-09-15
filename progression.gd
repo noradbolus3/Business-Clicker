@@ -2,9 +2,9 @@ extends RefCounted
 class_name Progression
 
 
-# =========================================================
+# ============================================================
 # MISSIONS
-# =========================================================
+# ============================================================
 
 const MISSION_NAMES: Array = [
 	"Earn your first $100",
@@ -14,7 +14,6 @@ const MISSION_NAMES: Array = [
 	"Earn $100,000 total"
 ]
 
-
 const MISSION_TARGETS: Array = [
 	100.0,
 	2500.0,
@@ -22,7 +21,6 @@ const MISSION_TARGETS: Array = [
 	1.0,
 	100000.0
 ]
-
 
 const MISSION_REWARDS: Array = [
 	100.0,
@@ -33,9 +31,9 @@ const MISSION_REWARDS: Array = [
 ]
 
 
-# =========================================================
+# ============================================================
 # ACHIEVEMENTS
-# =========================================================
+# ============================================================
 
 const ACHIEVEMENT_NAMES: Array = [
 	"First Dollar",
@@ -45,7 +43,6 @@ const ACHIEVEMENT_NAMES: Array = [
 	"Company Founder",
 	"Business Tycoon"
 ]
-
 
 const ACHIEVEMENT_REWARDS: Array = [
 	25.0,
@@ -57,13 +54,12 @@ const ACHIEVEMENT_REWARDS: Array = [
 ]
 
 
-# =========================================================
+# ============================================================
 # STATE
-# =========================================================
+# ============================================================
 
 var mission_index: int = 0
 var missions_completed: int = 0
-
 
 var achievement_earned: Array = [
 	false,
@@ -75,9 +71,9 @@ var achievement_earned: Array = [
 ]
 
 
-# =========================================================
+# ============================================================
 # CURRENT MISSION
-# =========================================================
+# ============================================================
 
 func get_current_mission_name() -> String:
 
@@ -109,9 +105,9 @@ func get_current_mission_reward() -> float:
 	)
 
 
-# =========================================================
+# ============================================================
 # MISSION PROGRESS
-# =========================================================
+# ============================================================
 
 func get_mission_progress(
 	total_earned: float,
@@ -155,9 +151,9 @@ func get_mission_progress(
 	return 0.0
 
 
-# =========================================================
+# ============================================================
 # MISSION CHECK
-# =========================================================
+# ============================================================
 
 func check_mission(
 	state: GameState,
@@ -204,9 +200,9 @@ func check_mission(
 	return reward
 
 
-# =========================================================
+# ============================================================
 # ACHIEVEMENT CHECK
-# =========================================================
+# ============================================================
 
 func check_achievements(
 	state: GameState,
@@ -222,66 +218,95 @@ func check_achievements(
 	var company_active: bool = company.is_active()
 
 
+	# --------------------------------------------------------
 	# First Dollar
+	# --------------------------------------------------------
+
 	if not bool(achievement_earned[0]):
+
 		if total_earned >= 1.0:
 
 			achievement_earned[0] = true
+			total_reward += float(
+				ACHIEVEMENT_REWARDS[0]
+			)
 
-			total_reward += ACHIEVEMENT_REWARDS[0]
 
-
+	# --------------------------------------------------------
 	# Serious Earner
+	# --------------------------------------------------------
+
 	if not bool(achievement_earned[1]):
+
 		if total_earned >= 2500.0:
 
 			achievement_earned[1] = true
+			total_reward += float(
+				ACHIEVEMENT_REWARDS[1]
+			)
 
-			total_reward += ACHIEVEMENT_REWARDS[1]
 
-
+	# --------------------------------------------------------
 	# Business Owner
+	# --------------------------------------------------------
+
 	if not bool(achievement_earned[2]):
+
 		if owned_businesses >= 2:
 
 			achievement_earned[2] = true
+			total_reward += float(
+				ACHIEVEMENT_REWARDS[2]
+			)
 
-			total_reward += ACHIEVEMENT_REWARDS[2]
 
-
+	# --------------------------------------------------------
 	# Monthly Operator
+	# --------------------------------------------------------
+
 	if not bool(achievement_earned[3]):
+
 		if months_completed >= 1:
 
 			achievement_earned[3] = true
+			total_reward += float(
+				ACHIEVEMENT_REWARDS[3]
+			)
 
-			total_reward += ACHIEVEMENT_REWARDS[3]
 
-
+	# --------------------------------------------------------
 	# Company Founder
+	# --------------------------------------------------------
+
 	if not bool(achievement_earned[4]):
+
 		if company_active:
 
 			achievement_earned[4] = true
+			total_reward += float(
+				ACHIEVEMENT_REWARDS[4]
+			)
 
-			total_reward += ACHIEVEMENT_REWARDS[4]
 
-
+	# --------------------------------------------------------
 	# Business Tycoon
+	# --------------------------------------------------------
+
 	if not bool(achievement_earned[5]):
+
 		if total_earned >= 1000000.0:
 
 			achievement_earned[5] = true
-
-			total_reward += ACHIEVEMENT_REWARDS[5]
-
+			total_reward += float(
+				ACHIEVEMENT_REWARDS[5]
+			)
 
 	return total_reward
 
 
-# =========================================================
+# ============================================================
 # MISSION DISPLAY
-# =========================================================
+# ============================================================
 
 func get_mission_text(
 	state: GameState,
@@ -292,7 +317,6 @@ func get_mission_text(
 	if mission_index >= MISSION_NAMES.size():
 
 		return "ALL MISSIONS COMPLETED\nStarter campaign completed."
-
 
 	var progress: float = get_mission_progress(
 		state.total_earned,
@@ -329,9 +353,9 @@ func get_mission_text(
 	]
 
 
-# =========================================================
+# ============================================================
 # ACHIEVEMENT DISPLAY
-# =========================================================
+# ============================================================
 
 func get_achievement_text(
 	state: GameState,
@@ -361,9 +385,9 @@ func get_achievement_text(
 	return text
 
 
-# =========================================================
+# ============================================================
 # ACHIEVEMENT HELPERS
-# =========================================================
+# ============================================================
 
 func get_achievement_name(
 	index: int
@@ -410,9 +434,9 @@ func is_achievement_earned(
 	)
 
 
-# =========================================================
+# ============================================================
 # SAVE DATA
-# =========================================================
+# ============================================================
 
 func get_save_data() -> Dictionary:
 
@@ -423,9 +447,9 @@ func get_save_data() -> Dictionary:
 	}
 
 
-# =========================================================
+# ============================================================
 # LOAD DATA
-# =========================================================
+# ============================================================
 
 func load_save_data(
 	data: Dictionary
@@ -438,7 +462,6 @@ func load_save_data(
 		)
 	)
 
-
 	missions_completed = int(
 		data.get(
 			"missions_completed",
@@ -446,18 +469,14 @@ func load_save_data(
 		)
 	)
 
-
 	if mission_index < 0:
 		mission_index = 0
-
 
 	if mission_index > MISSION_NAMES.size():
 		mission_index = MISSION_NAMES.size()
 
-
 	if missions_completed < 0:
 		missions_completed = 0
-
 
 	var saved_achievements: Variant = data.get(
 		"achievement_earned",
@@ -470,7 +489,6 @@ func load_save_data(
 			false
 		]
 	)
-
 
 	if saved_achievements is Array:
 
@@ -488,9 +506,9 @@ func load_save_data(
 			)
 
 
-# =========================================================
+# ============================================================
 # MONEY FORMAT
-# =========================================================
+# ============================================================
 
 func _money(
 	value: float
@@ -502,13 +520,11 @@ func _money(
 			value / 1000000000000.0
 		)
 
-
 	if value >= 1000000000.0:
 
 		return "%.2fB" % (
 			value / 1000000000.0
 		)
-
 
 	if value >= 1000000.0:
 
@@ -516,10 +532,8 @@ func _money(
 			value / 1000000.0
 		)
 
-
 	if value >= 1000.0:
 
 		return "%.0f" % value
-
 
 	return "%.0f" % value
