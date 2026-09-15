@@ -9,25 +9,25 @@ var earnings_label: Label
 var day_label: Label
 var click_label: Label
 var boost_label: Label
+var status_label: Label
 
-var mission_label: Label
-var achievement_label: Label
-
+var staff_label: Label
 var business_label: Label
 var company_label: Label
-var staff_label: Label
+var mission_label: Label
+var achievement_label: Label
+var monthly_label: Label
+var stats_label: Label
 
 var earn_button: Button
 var click_upgrade_button: Button
 var boost_button: Button
-
 var employee_button: Button
 var manager_button: Button
 
 var business_buttons: Array[Button] = []
-var company_button: Button
 
-var status_label: Label
+var company_button: Button
 
 
 func build(
@@ -42,21 +42,24 @@ func build(
 
 func _create_ui(callbacks: Dictionary) -> void:
 
+	# =====================================================
+	# BACKGROUND
+	# =====================================================
+
 	var background: ColorRect = ColorRect.new()
+
+	background.color = Color("#080C16")
 
 	background.set_anchors_and_offsets_preset(
 		Control.PRESET_FULL_RECT
 	)
 
-	background.color = Color(
-		0.035,
-		0.045,
-		0.065,
-		1.0
-	)
-
 	root.add_child(background)
 
+
+	# =====================================================
+	# SCROLL
+	# =====================================================
 
 	var scroll: ScrollContainer = ScrollContainer.new()
 
@@ -64,57 +67,63 @@ func _create_ui(callbacks: Dictionary) -> void:
 		Control.PRESET_FULL_RECT
 	)
 
-	scroll.offset_left = 16.0
-	scroll.offset_top = 16.0
-	scroll.offset_right = -16.0
-	scroll.offset_bottom = -16.0
+	scroll.offset_left = 12.0
+	scroll.offset_top = 12.0
+	scroll.offset_right = -12.0
+	scroll.offset_bottom = -12.0
+
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 
 	root.add_child(scroll)
 
 
+	# =====================================================
+	# MAIN CONTAINER
+	# =====================================================
+
 	var main_box: VBoxContainer = VBoxContainer.new()
+
+	main_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 	main_box.add_theme_constant_override(
 		"separation",
-		12
+		10
 	)
-
-	main_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 	scroll.add_child(main_box)
 
 
-	var title: Label = Label.new()
+	# =====================================================
+	# TITLE
+	# =====================================================
 
-	title.text = "BUSINESS CLICKER"
+	var title: Label = _make_label(
+		"BUSINESS CLICKER",
+		30
+	)
 
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-
-	title.add_theme_font_size_override(
-		"font_size",
-		28
-	)
 
 	main_box.add_child(title)
 
 
-	var subtitle: Label = Label.new()
-
-	subtitle.text = "Build income. Own businesses. Build your company."
+	var subtitle: Label = _make_label(
+		"BUILD CAPITAL  •  OWN BUSINESSES  •  BUILD A COMPANY",
+		13
+	)
 
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-
-	subtitle.add_theme_font_size_override(
-		"font_size",
-		14
-	)
 
 	main_box.add_child(subtitle)
 
 
+	# =====================================================
+	# MONEY
+	# =====================================================
+
 	cash_label = _make_label(
 		"CASH: $0",
-		24
+		30
 	)
 
 	main_box.add_child(cash_label)
@@ -139,24 +148,44 @@ func _create_ui(callbacks: Dictionary) -> void:
 
 
 	status_label = _make_label(
-		"Welcome.",
+		"Welcome. Start building your capital.",
 		14
 	)
 
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
 	main_box.add_child(status_label)
 
 
+	# =====================================================
+	# EARN
+	# =====================================================
+
 	earn_button = _make_button(
 		"EARN $1"
 	)
+
+	earn_button.custom_minimum_size.y = 72
 
 	earn_button.pressed.connect(
 		callbacks["earn"]
 	)
 
 	main_box.add_child(earn_button)
+
+
+	# =====================================================
+	# CLICKER
+	# =====================================================
+
+	_add_separator(main_box)
+
+	var click_title: Label = _make_section_title(
+		"CLICKER"
+	)
+
+	main_box.add_child(click_title)
 
 
 	click_label = _make_label(
@@ -178,10 +207,16 @@ func _create_ui(callbacks: Dictionary) -> void:
 	main_box.add_child(click_upgrade_button)
 
 
+	# =====================================================
+	# BOOST
+	# =====================================================
+
 	boost_label = _make_label(
 		"BOOST: READY",
 		15
 	)
+
+	boost_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 
 	main_box.add_child(boost_label)
 
@@ -197,8 +232,11 @@ func _create_ui(callbacks: Dictionary) -> void:
 	main_box.add_child(boost_button)
 
 
-	_add_separator(main_box)
+	# =====================================================
+	# STAFF
+	# =====================================================
 
+	_add_separator(main_box)
 
 	var staff_title: Label = _make_section_title(
 		"STAFF"
@@ -237,8 +275,11 @@ func _create_ui(callbacks: Dictionary) -> void:
 	main_box.add_child(manager_button)
 
 
-	_add_separator(main_box)
+	# =====================================================
+	# BUSINESSES
+	# =====================================================
 
+	_add_separator(main_box)
 
 	var business_title: Label = _make_section_title(
 		"BUSINESSES"
@@ -248,7 +289,7 @@ func _create_ui(callbacks: Dictionary) -> void:
 
 
 	business_label = _make_label(
-		"Businesses owned: 0 / 5",
+		"Businesses owned: 1 / 5",
 		16
 	)
 
@@ -260,6 +301,8 @@ func _create_ui(callbacks: Dictionary) -> void:
 		var business_button: Button = _make_button(
 			"BUSINESS %d" % (index + 1)
 		)
+
+		business_button.custom_minimum_size.y = 64
 
 		business_button.pressed.connect(
 			callbacks["business"].bind(index)
@@ -274,8 +317,11 @@ func _create_ui(callbacks: Dictionary) -> void:
 		)
 
 
-	_add_separator(main_box)
+	# =====================================================
+	# COMPANY
+	# =====================================================
 
+	_add_separator(main_box)
 
 	var company_title: Label = _make_section_title(
 		"COMPANY"
@@ -289,12 +335,16 @@ func _create_ui(callbacks: Dictionary) -> void:
 		16
 	)
 
+	company_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+
 	main_box.add_child(company_label)
 
 
 	company_button = _make_button(
 		"FORM COMPANY"
 	)
+
+	company_button.custom_minimum_size.y = 64
 
 	company_button.pressed.connect(
 		callbacks["company"]
@@ -303,11 +353,37 @@ func _create_ui(callbacks: Dictionary) -> void:
 	main_box.add_child(company_button)
 
 
+	# =====================================================
+	# MONTHLY REPORT
+	# =====================================================
+
 	_add_separator(main_box)
 
+	var monthly_title: Label = _make_section_title(
+		"MONTHLY BUSINESS REPORT"
+	)
+
+	main_box.add_child(monthly_title)
+
+
+	monthly_label = _make_label(
+		"Revenue: $0\nExpenses: $0\nNet Profit: $0",
+		15
+	)
+
+	monthly_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+
+	main_box.add_child(monthly_label)
+
+
+	# =====================================================
+	# MISSIONS
+	# =====================================================
+
+	_add_separator(main_box)
 
 	var mission_title: Label = _make_section_title(
-		"MISSION"
+		"MISSIONS"
 	)
 
 	main_box.add_child(mission_title)
@@ -323,6 +399,10 @@ func _create_ui(callbacks: Dictionary) -> void:
 	main_box.add_child(mission_label)
 
 
+	# =====================================================
+	# ACHIEVEMENTS
+	# =====================================================
+
 	var achievement_title: Label = _make_section_title(
 		"ACHIEVEMENTS"
 	)
@@ -334,7 +414,7 @@ func _create_ui(callbacks: Dictionary) -> void:
 
 	achievement_label = _make_label(
 		"No achievements yet",
-		15
+		14
 	)
 
 	achievement_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -343,6 +423,44 @@ func _create_ui(callbacks: Dictionary) -> void:
 		achievement_label
 	)
 
+
+	# =====================================================
+	# STATS
+	# =====================================================
+
+	_add_separator(main_box)
+
+	var stats_title: Label = _make_section_title(
+		"GAME STATS"
+	)
+
+	main_box.add_child(stats_title)
+
+
+	stats_label = _make_label(
+		"Cash: $0",
+		14
+	)
+
+	stats_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+
+	main_box.add_child(stats_label)
+
+
+	# =====================================================
+	# END SPACE
+	# =====================================================
+
+	var spacer: Control = Control.new()
+
+	spacer.custom_minimum_size.y = 40
+
+	main_box.add_child(spacer)
+
+
+# =========================================================
+# LABEL
+# =========================================================
 
 func _make_label(
 	text_value: String,
@@ -363,6 +481,10 @@ func _make_label(
 	return label
 
 
+# =========================================================
+# SECTION TITLE
+# =========================================================
+
 func _make_section_title(
 	text_value: String
 ) -> Label:
@@ -375,11 +497,17 @@ func _make_section_title(
 
 	label.add_theme_font_size_override(
 		"font_size",
-		20
+		21
 	)
+
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 	return label
 
+
+# =========================================================
+# BUTTON
+# =========================================================
 
 func _make_button(
 	text_value: String
@@ -391,18 +519,22 @@ func _make_button(
 
 	button.custom_minimum_size = Vector2(
 		0,
-		52
+		54
 	)
 
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 	button.add_theme_font_size_override(
 		"font_size",
-		16
+		15
 	)
 
 	return button
 
+
+# =========================================================
+# SEPARATOR
+# =========================================================
 
 func _add_separator(
 	parent: VBoxContainer
@@ -415,6 +547,10 @@ func _add_separator(
 	)
 
 
+# =========================================================
+# REFRESH
+# =========================================================
+
 func refresh(
 	state: GameState,
 	businesses: BusinessManager,
@@ -426,26 +562,42 @@ func refresh(
 		return
 
 
+	# =====================================================
+	# MONEY
+	# =====================================================
+
 	cash_label.text = "CASH: $%s" % _money(
 		state.cash
 	)
-
 
 	earnings_label.text = "TOTAL EARNED: $%s" % _money(
 		state.total_earned
 	)
 
 
-	day_label.text = "DAY %d  •  MONTH %d" % [
+	# =====================================================
+	# TIME
+	# =====================================================
+
+	day_label.text = "DAY %d / %d  •  MONTH %d" % [
 		state.game_day,
+		GameState.DAYS_PER_MONTH,
 		state.game_month
 	]
 
 
-	earn_button.text = "EARN $%s" % _money(
+	# =====================================================
+	# EARN
+	# =====================================================
+
+	earn_button.text = "EARN  +$%s" % _money(
 		state.get_click_amount()
 	)
 
+
+	# =====================================================
+	# CLICKER
+	# =====================================================
 
 	click_label.text = "CLICK LEVEL %d  •  $%s / CLICK" % [
 		state.click_level,
@@ -455,7 +607,7 @@ func refresh(
 
 	if state.click_value >= GameState.MAX_CLICK_VALUE:
 
-		click_upgrade_button.text = "CLICK MAXED"
+		click_upgrade_button.text = "CLICKER MAXED  •  $10 / CLICK"
 
 		click_upgrade_button.disabled = true
 
@@ -465,33 +617,37 @@ func refresh(
 			state.click_level
 		)
 
-		click_upgrade_button.text = "UPGRADE CLICK  •  $%s" % _money(
+		click_upgrade_button.text = "UPGRADE CLICK  •  COST $%s" % _money(
 			click_cost
 		)
 
-		click_upgrade_button.disabled = (
-			state.cash < click_cost
-		)
+		click_upgrade_button.disabled = state.cash < click_cost
 
+
+	# =====================================================
+	# BOOST
+	# =====================================================
 
 	if state.boost_active:
 
-		boost_label.text = "BOOST ACTIVE  •  %.1f DAYS LEFT" % (
-			state.boost_days_left
-		)
+		boost_label.text = "10X BOOST ACTIVE  •  %.1f DAYS LEFT" % state.boost_days_left
 
-		boost_button.text = "BOOST ACTIVE"
+		boost_button.text = "10X BOOST ACTIVE"
 
 		boost_button.disabled = true
 
 	else:
 
-		boost_label.text = "BOOST: READY"
+		boost_label.text = "BOOST READY  •  10X FOR 3 DAYS"
 
 		boost_button.text = "ACTIVATE 10X BOOST"
 
 		boost_button.disabled = false
 
+
+	# =====================================================
+	# STAFF
+	# =====================================================
 
 	staff_label.text = "Employees: %d  •  Managers: %d" % [
 		state.employee_count,
@@ -500,39 +656,50 @@ func refresh(
 
 
 	var employee_cost: float = (
-		1000.0 + float(state.employee_count) * 750.0
+		1000.0 +
+		float(state.employee_count) * 750.0
 	)
 
 	employee_button.text = "HIRE EMPLOYEE  •  $%s" % _money(
 		employee_cost
 	)
 
-	employee_button.disabled = (
-		state.cash < employee_cost
-	)
+	employee_button.disabled = state.cash < employee_cost
 
 
 	var manager_cost: float = (
-		5000.0 + float(state.manager_count) * 3000.0
+		5000.0 +
+		float(state.manager_count) * 3000.0
 	)
 
 	manager_button.text = "HIRE MANAGER  •  $%s" % _money(
 		manager_cost
 	)
 
-	manager_button.disabled = (
-		state.cash < manager_cost
-	)
+	manager_button.disabled = state.cash < manager_cost
 
+
+	# =====================================================
+	# BUSINESSES
+	# =====================================================
 
 	var owned_count: int = businesses.get_owned_count()
 
-	business_label.text = "Businesses owned: %d / 5" % owned_count
+	business_label.text = "BUSINESSES OWNED: %d / %d" % [
+		owned_count,
+		BusinessManager.BUSINESS_COUNT
+	]
 
 
 	for index in range(business_buttons.size()):
 
 		var button: Button = business_buttons[index]
+
+		if not businesses.is_valid_business(index):
+			button.text = "INVALID BUSINESS"
+			button.disabled = true
+			continue
+
 
 		if businesses.is_unlocked(index):
 
@@ -544,20 +711,24 @@ func refresh(
 				index
 			)
 
-			var upgrade_cost: float = businesses.get_upgrade_cost(
+			var profit: float = businesses.get_business_profit(
 				index
 			)
 
-			button.text = "%s  •  LV %d  •  $%s/mo  •  UPGRADE $%s" % [
+			var selected_text: String = ""
+
+			if businesses.selected_business == index:
+				selected_text = "  [SELECTED]"
+
+			button.text = "%s%s\nLV %d  •  Revenue $%s/mo\nProfit $%s/mo" % [
 				businesses.get_business_name(index),
+				selected_text,
 				level,
 				_money(revenue),
-				_money(upgrade_cost)
+				_money(profit)
 			]
 
-			button.disabled = (
-				state.cash < upgrade_cost
-			)
+			button.disabled = false
 
 		else:
 
@@ -565,15 +736,17 @@ func refresh(
 				index
 			)
 
-			button.text = "%s  •  UNLOCK $%s" % [
+			button.text = "%s\nLOCKED  •  UNLOCK $%s" % [
 				businesses.get_business_name(index),
 				_money(unlock_cost)
 			]
 
-			button.disabled = (
-				state.cash < unlock_cost
-			)
+			button.disabled = state.cash < unlock_cost
 
+
+	# =====================================================
+	# COMPANY
+	# =====================================================
 
 	company_label.text = company.get_status_text()
 
@@ -586,19 +759,37 @@ func refresh(
 			company_cost
 		)
 
-		company_button.disabled = (
-			state.cash < company_cost
-		)
+		company_button.disabled = state.cash < company_cost
 
 	else:
 
 		company_button.text = "FORM COMPANY  •  $100000"
 
-		company_button.disabled = (
-			owned_count < CompanyManager.COMPANY_REQUIRED_BUSINESSES
-			or state.cash < CompanyManager.COMPANY_UNLOCK_COST
-		)
+		var can_form: bool = true
 
+		if owned_count < CompanyManager.COMPANY_REQUIRED_BUSINESSES:
+			can_form = false
+
+		if state.cash < CompanyManager.COMPANY_UNLOCK_COST:
+			can_form = false
+
+		company_button.disabled = not can_form
+
+
+	# =====================================================
+	# MONTHLY REPORT
+	# =====================================================
+
+	monthly_label.text = "Monthly Revenue: $%s\nOperating Expenses + Tax: $%s\nNET MONTHLY PROFIT: $%s" % [
+		_money(businesses.get_total_revenue()),
+		_money(businesses.get_total_expenses()),
+		_money(businesses.get_total_profit())
+	]
+
+
+	# =====================================================
+	# MISSION
+	# =====================================================
 
 	mission_label.text = progression.get_mission_text(
 		state,
@@ -607,12 +798,43 @@ func refresh(
 	)
 
 
+	# =====================================================
+	# ACHIEVEMENTS
+	# =====================================================
+
 	achievement_label.text = progression.get_achievement_text(
 		state,
 		businesses,
 		company
 	)
 
+
+	# =====================================================
+	# STATS
+	# =====================================================
+
+	var company_status: String = "NOT FORMED"
+
+	if company.is_active():
+		company_status = "ACTIVE"
+
+
+	stats_label.text = "Cash: $%s\nTotal Earnings: $%s\nBusinesses: %d / %d\nEmployees: %d\nManagers: %d\nMonths Completed: %d\nClick Value: $%s\nCompany: %s" % [
+		_money(state.cash),
+		_money(state.total_earned),
+		owned_count,
+		BusinessManager.BUSINESS_COUNT,
+		state.employee_count,
+		state.manager_count,
+		state.total_months_completed,
+		_money(state.click_value),
+		company_status
+	]
+
+
+# =========================================================
+# STATUS
+# =========================================================
 
 func set_status(
 	text_value: String
@@ -623,6 +845,10 @@ func set_status(
 
 	status_label.text = text_value
 
+
+# =========================================================
+# CLICK UPGRADE COST
+# =========================================================
 
 func _get_click_upgrade_cost(
 	level: int
@@ -651,21 +877,34 @@ func _get_click_upgrade_cost(
 	return costs[index]
 
 
+# =========================================================
+# MONEY FORMAT
+# =========================================================
+
 func _money(
 	value: float
 ) -> String:
 
+	if value >= 1000000000000.0:
+
+		return "%.2fT" % (
+			value / 1000000000000.0
+		)
+
 	if value >= 1000000000.0:
+
 		return "%.2fB" % (
 			value / 1000000000.0
 		)
 
 	if value >= 1000000.0:
+
 		return "%.2fM" % (
 			value / 1000000.0
 		)
 
 	if value >= 1000.0:
+
 		return "%.0f" % value
 
-	return "%.2f" % value
+	return "%.0f" % value
