@@ -1,6 +1,7 @@
 extends RefCounted
 class_name Progression
 
+
 # =========================================================
 # MISSIONS
 # =========================================================
@@ -13,6 +14,7 @@ const MISSION_NAMES: Array = [
 	"Earn $100,000 total"
 ]
 
+
 const MISSION_TARGETS: Array = [
 	100.0,
 	2500.0,
@@ -21,6 +23,7 @@ const MISSION_TARGETS: Array = [
 	100000.0
 ]
 
+
 const MISSION_REWARDS: Array = [
 	100.0,
 	500.0,
@@ -28,6 +31,7 @@ const MISSION_REWARDS: Array = [
 	5000.0,
 	25000.0
 ]
+
 
 # =========================================================
 # ACHIEVEMENTS
@@ -42,6 +46,7 @@ const ACHIEVEMENT_NAMES: Array = [
 	"Business Tycoon"
 ]
 
+
 const ACHIEVEMENT_REWARDS: Array = [
 	25.0,
 	250.0,
@@ -51,12 +56,14 @@ const ACHIEVEMENT_REWARDS: Array = [
 	50000.0
 ]
 
+
 # =========================================================
 # STATE
 # =========================================================
 
 var mission_index: int = 0
 var missions_completed: int = 0
+
 
 var achievement_earned: Array = [
 	false,
@@ -69,7 +76,7 @@ var achievement_earned: Array = [
 
 
 # =========================================================
-# MISSION PROGRESS
+# CURRENT MISSION
 # =========================================================
 
 func get_current_mission_name() -> String:
@@ -101,6 +108,10 @@ func get_current_mission_reward() -> float:
 		MISSION_REWARDS[mission_index]
 	)
 
+
+# =========================================================
+# MISSION PROGRESS
+# =========================================================
 
 func get_mission_progress(
 	total_earned: float,
@@ -144,18 +155,22 @@ func get_mission_progress(
 	return 0.0
 
 
+# =========================================================
+# MISSION CHECK
+# =========================================================
+
 func check_mission(
-	total_earned: float,
-	owned_businesses: int,
-	months_completed: int
-) -> Dictionary:
+	state: GameState,
+	businesses: BusinessManager,
+	company: CompanyManager
+) -> float:
 
 	if mission_index >= MISSION_NAMES.size():
-		return {
-			"completed": false,
-			"reward": 0.0,
-			"mission_index": mission_index
-		}
+		return 0.0
+
+	var total_earned: float = state.total_earned
+	var owned_businesses: int = businesses.get_owned_count()
+	var months_completed: int = state.total_months_completed
 
 	var completed: bool = false
 
@@ -177,95 +192,187 @@ func check_mission(
 			completed = total_earned >= 100000.0
 
 	if not completed:
-		return {
-			"completed": false,
-			"reward": 0.0,
-			"mission_index": mission_index
-		}
+		return 0.0
 
-	var completed_index: int = mission_index
 	var reward: float = float(
-		MISSION_REWARDS[completed_index]
+		MISSION_REWARDS[mission_index]
 	)
 
 	missions_completed += 1
 	mission_index += 1
 
-	return {
-		"completed": true,
-		"reward": reward,
-		"mission_index": completed_index,
-		"next_mission": mission_index
-	}
+	return reward
 
 
 # =========================================================
-# ACHIEVEMENTS
+# ACHIEVEMENT CHECK
 # =========================================================
 
 func check_achievements(
-	total_earned: float,
-	owned_businesses: int,
-	months_completed: int,
-	company_active: bool
-) -> Array:
+	state: GameState,
+	businesses: BusinessManager,
+	company: CompanyManager
+) -> float:
 
-	var unlocked: Array = []
+	var total_reward: float = 0.0
+
+	var total_earned: float = state.total_earned
+	var owned_businesses: int = businesses.get_owned_count()
+	var months_completed: int = state.total_months_completed
+	var company_active: bool = company.is_active()
+
 
 	# First Dollar
-	if (
-		not bool(achievement_earned[0])
-		and total_earned >= 1.0
-	):
-		achievement_earned[0] = true
-		unlocked.append(0)
+	if not bool(achievement_earned[0]):
+		if total_earned >= 1.0:
+
+			achievement_earned[0] = true
+
+			total_reward += ACHIEVEMENT_REWARDS[0]
+
 
 	# Serious Earner
-	if (
-		not bool(achievement_earned[1])
-		and total_earned >= 2500.0
-	):
-		achievement_earned[1] = true
-		unlocked.append(1)
+	if not bool(achievement_earned[1]):
+		if total_earned >= 2500.0:
+
+			achievement_earned[1] = true
+
+			total_reward += ACHIEVEMENT_REWARDS[1]
+
 
 	# Business Owner
-	if (
-		not bool(achievement_earned[2])
-		and owned_businesses >= 2
-	):
-		achievement_earned[2] = true
-		unlocked.append(2)
+	if not bool(achievement_earned[2]):
+		if owned_businesses >= 2:
+
+			achievement_earned[2] = true
+
+			total_reward += ACHIEVEMENT_REWARDS[2]
+
 
 	# Monthly Operator
-	if (
-		not bool(achievement_earned[3])
-		and months_completed >= 1
-	):
-		achievement_earned[3] = true
-		unlocked.append(3)
+	if not bool(achievement_earned[3]):
+		if months_completed >= 1:
+
+			achievement_earned[3] = true
+
+			total_reward += ACHIEVEMENT_REWARDS[3]
+
 
 	# Company Founder
-	if (
-		not bool(achievement_earned[4])
-		and company_active
-	):
-		achievement_earned[4] = true
-		unlocked.append(4)
+	if not bool(achievement_earned[4]):
+		if company_active:
+
+			achievement_earned[4] = true
+
+			total_reward += ACHIEVEMENT_REWARDS[4]
+
 
 	# Business Tycoon
-	if (
-		not bool(achievement_earned[5])
-		and total_earned >= 1000000.0
+	if not bool(achievement_earned[5]):
+		if total_earned >= 1000000.0:
+
+			achievement_earned[5] = true
+
+			total_reward += ACHIEVEMENT_REWARDS[5]
+
+
+	return total_reward
+
+
+# =========================================================
+# MISSION DISPLAY
+# =========================================================
+
+func get_mission_text(
+	state: GameState,
+	businesses: BusinessManager,
+	company: CompanyManager
+) -> String:
+
+	if mission_index >= MISSION_NAMES.size():
+
+		return "ALL MISSIONS COMPLETED\nStarter campaign completed."
+
+
+	var progress: float = get_mission_progress(
+		state.total_earned,
+		businesses.get_owned_count(),
+		state.total_months_completed
+	)
+
+	var target: float = get_current_mission_target()
+	var reward: float = get_current_mission_reward()
+
+
+	if mission_index == 2:
+
+		return "MISSION 3\nOwn 2 businesses\n\nProgress: %d / 2 businesses\nReward: $%s" % [
+			businesses.get_owned_count(),
+			_money(reward)
+		]
+
+
+	if mission_index == 3:
+
+		return "MISSION 4\nComplete your first month\n\nProgress: %d / 1 month\nReward: $%s" % [
+			state.total_months_completed,
+			_money(reward)
+		]
+
+
+	return "MISSION %d\n%s\n\nProgress: $%s / $%s\nReward: $%s" % [
+		mission_index + 1,
+		get_current_mission_name(),
+		_money(progress),
+		_money(target),
+		_money(reward)
+	]
+
+
+# =========================================================
+# ACHIEVEMENT DISPLAY
+# =========================================================
+
+func get_achievement_text(
+	state: GameState,
+	businesses: BusinessManager,
+	company: CompanyManager
+) -> String:
+
+	var text: String = ""
+
+	for i in range(
+		ACHIEVEMENT_NAMES.size()
 	):
-		achievement_earned[5] = true
-		unlocked.append(5)
 
-	return unlocked
+		var mark: String = "[LOCKED]"
+
+		if bool(achievement_earned[i]):
+			mark = "[DONE]"
+
+		text += "%s  %s  •  $%s\n" % [
+			mark,
+			ACHIEVEMENT_NAMES[i],
+			_money(
+				ACHIEVEMENT_REWARDS[i]
+			)
+		]
+
+	return text
 
 
-func get_achievement_name(index: int) -> String:
+# =========================================================
+# ACHIEVEMENT HELPERS
+# =========================================================
 
-	if index < 0 or index >= ACHIEVEMENT_NAMES.size():
+func get_achievement_name(
+	index: int
+) -> String:
+
+	if index < 0:
+		return ""
+
+	if index >= ACHIEVEMENT_NAMES.size():
 		return ""
 
 	return str(
@@ -273,9 +380,14 @@ func get_achievement_name(index: int) -> String:
 	)
 
 
-func get_achievement_reward(index: int) -> float:
+func get_achievement_reward(
+	index: int
+) -> float:
 
-	if index < 0 or index >= ACHIEVEMENT_REWARDS.size():
+	if index < 0:
+		return 0.0
+
+	if index >= ACHIEVEMENT_REWARDS.size():
 		return 0.0
 
 	return float(
@@ -283,9 +395,14 @@ func get_achievement_reward(index: int) -> float:
 	)
 
 
-func is_achievement_earned(index: int) -> bool:
+func is_achievement_earned(
+	index: int
+) -> bool:
 
-	if index < 0 or index >= achievement_earned.size():
+	if index < 0:
+		return false
+
+	if index >= achievement_earned.size():
 		return false
 
 	return bool(
@@ -294,96 +411,7 @@ func is_achievement_earned(index: int) -> bool:
 
 
 # =========================================================
-# DISPLAY
-# =========================================================
-
-func get_mission_text(
-	total_earned: float,
-	owned_businesses: int,
-	months_completed: int
-) -> String:
-
-	if mission_index >= MISSION_NAMES.size():
-
-		return (
-			"ALL MISSIONS COMPLETED\n"
-			"Starter campaign completed."
-		)
-
-	var progress: float = get_mission_progress(
-		total_earned,
-		owned_businesses,
-		months_completed
-	)
-
-	var target: float = get_current_mission_target()
-	var reward: float = get_current_mission_reward()
-
-	if mission_index == 2:
-
-		return (
-			"MISSION 3\n"
-			"Own 2 businesses\n\n"
-			"Progress: %d / 2 businesses\n"
-			"Reward: $%s"
-			% [
-				owned_businesses,
-				_money(reward)
-			]
-		)
-
-	if mission_index == 3:
-
-		return (
-			"MISSION 4\n"
-			"Complete your first month\n\n"
-			"Progress: %d / 1 month\n"
-			"Reward: $%s"
-			% [
-				months_completed,
-				_money(reward)
-			]
-		)
-
-	return (
-		"MISSION %d\n"
-		"%s\n\n"
-		"Progress: $%s / $%s\n"
-		"Reward: $%s"
-		% [
-			mission_index + 1,
-			get_current_mission_name(),
-			_money(progress),
-			_money(target),
-			_money(reward)
-		]
-	)
-
-
-func get_achievement_text() -> String:
-
-	var text: String = ""
-
-	for i in range(ACHIEVEMENT_NAMES.size()):
-
-		var mark: String = "[LOCKED]"
-
-		if bool(achievement_earned[i]):
-			mark = "[DONE]"
-
-		text += (
-			"%s  %s\n"
-			% [
-				mark,
-				ACHIEVEMENT_NAMES[i]
-			]
-		)
-
-	return text
-
-
-# =========================================================
-# SAVE / LOAD
+# SAVE DATA
 # =========================================================
 
 func get_save_data() -> Dictionary:
@@ -395,7 +423,13 @@ func get_save_data() -> Dictionary:
 	}
 
 
-func load_save_data(data: Dictionary) -> void:
+# =========================================================
+# LOAD DATA
+# =========================================================
+
+func load_save_data(
+	data: Dictionary
+) -> void:
 
 	mission_index = int(
 		data.get(
@@ -404,6 +438,7 @@ func load_save_data(data: Dictionary) -> void:
 		)
 	)
 
+
 	missions_completed = int(
 		data.get(
 			"missions_completed",
@@ -411,14 +446,18 @@ func load_save_data(data: Dictionary) -> void:
 		)
 	)
 
+
 	if mission_index < 0:
 		mission_index = 0
+
 
 	if mission_index > MISSION_NAMES.size():
 		mission_index = MISSION_NAMES.size()
 
+
 	if missions_completed < 0:
 		missions_completed = 0
+
 
 	var saved_achievements: Variant = data.get(
 		"achievement_earned",
@@ -431,6 +470,7 @@ func load_save_data(data: Dictionary) -> void:
 			false
 		]
 	)
+
 
 	if saved_achievements is Array:
 
@@ -452,24 +492,34 @@ func load_save_data(data: Dictionary) -> void:
 # MONEY FORMAT
 # =========================================================
 
-func _money(value: float) -> String:
+func _money(
+	value: float
+) -> String:
 
 	if value >= 1000000000000.0:
+
 		return "%.2fT" % (
 			value / 1000000000000.0
 		)
 
+
 	if value >= 1000000000.0:
+
 		return "%.2fB" % (
 			value / 1000000000.0
 		)
 
+
 	if value >= 1000000.0:
+
 		return "%.2fM" % (
 			value / 1000000.0
 		)
 
+
 	if value >= 1000.0:
+
 		return "%.0f" % value
+
 
 	return "%.0f" % value
