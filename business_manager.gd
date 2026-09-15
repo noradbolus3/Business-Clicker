@@ -1,6 +1,11 @@
 extends RefCounted
 class_name BusinessManager
 
+
+# ============================================================
+# BUSINESS CONSTANTS
+# ============================================================
+
 const BUSINESS_COUNT: int = 5
 
 const BUSINESS_NAMES: Array = [
@@ -48,7 +53,18 @@ const BUSINESS_UPGRADE_BASE_COST: Array = [
 
 const BUSINESS_LEVEL_MULTIPLIER: float = 1.55
 const BUSINESS_EXPENSE_MULTIPLIER: float = 1.42
+const BUSINESS_UPGRADE_COST_MULTIPLIER: float = 1.60
+
+const EMPLOYEE_REVENUE_BONUS: float = 0.025
+const MANAGER_EXPENSE_REDUCTION: float = 0.04
+const MIN_MANAGER_EXPENSE_MULTIPLIER: float = 0.60
+
 const TAX_RATE: float = 0.15
+
+
+# ============================================================
+# BUSINESS STATE
+# ============================================================
 
 var unlocked_businesses: Array = [
 	true,
@@ -99,9 +115,17 @@ var total_expenses: float = 0.0
 var total_profit: float = 0.0
 
 
+# ============================================================
+# INITIALIZATION
+# ============================================================
+
 func _init() -> void:
 	recalculate(0, 0, 1.0)
 
+
+# ============================================================
+# BUSINESS SELECTION
+# ============================================================
 
 func select_business(index: int) -> bool:
 	if not is_valid_business(index):
@@ -111,8 +135,13 @@ func select_business(index: int) -> bool:
 		return false
 
 	selected_business = index
+
 	return true
 
+
+# ============================================================
+# BUSINESS UNLOCK
+# ============================================================
 
 func unlock_business(index: int, cash: float) -> Dictionary:
 	if not is_valid_business(index):
@@ -152,6 +181,10 @@ func unlock_business(index: int, cash: float) -> Dictionary:
 		"message": "Business unlocked."
 	}
 
+
+# ============================================================
+# BUSINESS UPGRADE
+# ============================================================
 
 func upgrade_business(index: int, cash: float) -> Dictionary:
 	if not is_valid_business(index):
@@ -204,10 +237,14 @@ func get_upgrade_cost(index: int) -> float:
 	)
 
 	return base_cost * pow(
-		1.60,
+		BUSINESS_UPGRADE_COST_MULTIPLIER,
 		float(level - 1)
 	)
 
+
+# ============================================================
+# BUSINESS INFORMATION
+# ============================================================
 
 func get_unlock_cost(index: int) -> float:
 	if not is_valid_business(index):
@@ -272,6 +309,10 @@ func get_business_profit(index: int) -> float:
 	)
 
 
+# ============================================================
+# BUSINESS RECALCULATION
+# ============================================================
+
 func recalculate(
 	employee_count: int,
 	manager_count: int,
@@ -289,13 +330,13 @@ func recalculate(
 
 	var employee_multiplier: float = (
 		1.0 +
-		float(employee_count) * 0.025
+		float(employee_count) * EMPLOYEE_REVENUE_BONUS
 	)
 
 	var manager_multiplier: float = max(
-		0.60,
+		MIN_MANAGER_EXPENSE_MULTIPLIER,
 		1.0 -
-		float(manager_count) * 0.04
+		float(manager_count) * MANAGER_EXPENSE_REDUCTION
 	)
 
 	for i in range(BUSINESS_COUNT):
@@ -368,12 +409,18 @@ func recalculate(
 		business_monthly_profit[i] = net_profit
 
 		total_revenue += revenue
+
 		total_expenses += (
 			operating_expenses +
 			tax
 		)
+
 		total_profit += net_profit
 
+
+# ============================================================
+# TOTALS
+# ============================================================
 
 func get_owned_count() -> int:
 	var count: int = 0
@@ -397,6 +444,10 @@ func get_total_profit() -> float:
 	return total_profit
 
 
+# ============================================================
+# COMPANY MULTIPLIER
+# ============================================================
+
 func set_company_multiplier(multiplier: float) -> void:
 	company_multiplier = max(
 		1.0,
@@ -404,9 +455,17 @@ func set_company_multiplier(multiplier: float) -> void:
 	)
 
 
+# ============================================================
+# VALIDATION
+# ============================================================
+
 func is_valid_business(index: int) -> bool:
 	return index >= 0 and index < BUSINESS_COUNT
 
+
+# ============================================================
+# SAVE
+# ============================================================
 
 func get_save_data() -> Dictionary:
 	return {
@@ -418,6 +477,10 @@ func get_save_data() -> Dictionary:
 		"business_monthly_profit": business_monthly_profit.duplicate()
 	}
 
+
+# ============================================================
+# LOAD
+# ============================================================
 
 func load_save_data(data: Dictionary) -> void:
 
@@ -481,7 +544,10 @@ func load_save_data(data: Dictionary) -> void:
 
 			business_levels[i] = 0
 
-	# Restore calculated values when available.
+	# --------------------------------------------------------
+	# RESTORE CALCULATED VALUES
+	# --------------------------------------------------------
+
 	var saved_revenue: Variant = data.get(
 		"business_monthly_revenue",
 		[]
