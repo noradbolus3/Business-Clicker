@@ -37,11 +37,8 @@ func _ready() -> void:
 	)
 
 	_load_game()
-
 	_recalculate_businesses()
-
 	_check_progression()
-
 	_refresh_ui()
 
 
@@ -57,11 +54,8 @@ func _process(delta: float) -> void:
 	_recalculate_businesses()
 
 	if state.total_months_completed > previous_months:
-
 		_pay_monthly_profit()
-
 		_check_progression()
-
 		_save_game()
 
 	_refresh_ui()
@@ -84,9 +78,7 @@ func _on_earn_pressed() -> void:
 	)
 
 	_check_progression()
-
 	_save_game()
-
 	_refresh_ui()
 
 
@@ -96,36 +88,34 @@ func _on_earn_pressed() -> void:
 
 func _on_upgrade_click_pressed() -> void:
 
-	var cost: float = _get_click_upgrade_cost(
-		state.click_level
-	)
-
 	if state.click_value >= GameState.MAX_CLICK_VALUE:
 
 		ui.set_status(
-			"Clicker is already maxed at $10."
+			"Clicker is already maxed at $10 per click."
 		)
 
 		return
 
+	var cost: float = _get_click_upgrade_cost(
+		state.click_level
+	)
+
 	if not state.upgrade_click(cost):
 
 		ui.set_status(
-			"Need $%s for the next click upgrade." % _money(cost)
+			"Need $%s for the next click upgrade." %
+			_money(cost)
 		)
 
 		return
 
 	ui.set_status(
-		"Click power increased to $%s." % _money(
-			state.click_value
-		)
+		"Click power increased to $%s per click." %
+		_money(state.click_value)
 	)
 
 	_check_progression()
-
 	_save_game()
-
 	_refresh_ui()
 
 
@@ -148,7 +138,6 @@ func _on_boost_pressed() -> void:
 	)
 
 	_save_game()
-
 	_refresh_ui()
 
 
@@ -166,7 +155,8 @@ func _on_employee_pressed() -> void:
 	if not state.hire_employee(cost):
 
 		ui.set_status(
-			"Need $%s to hire an employee." % _money(cost)
+			"Need $%s to hire an employee." %
+			_money(cost)
 		)
 
 		return
@@ -179,9 +169,7 @@ func _on_employee_pressed() -> void:
 	)
 
 	_check_progression()
-
 	_save_game()
-
 	_refresh_ui()
 
 
@@ -199,7 +187,8 @@ func _on_manager_pressed() -> void:
 	if not state.hire_manager(cost):
 
 		ui.set_status(
-			"Need $%s to hire a manager." % _money(cost)
+			"Need $%s to hire a manager." %
+			_money(cost)
 		)
 
 		return
@@ -212,14 +201,12 @@ func _on_manager_pressed() -> void:
 	)
 
 	_check_progression()
-
 	_save_game()
-
 	_refresh_ui()
 
 
 # =========================================================
-# BUSINESS
+# BUSINESS SELECT / UNLOCK
 # =========================================================
 
 func _on_business_pressed(
@@ -227,17 +214,16 @@ func _on_business_pressed(
 ) -> void:
 
 	if not businesses.is_valid_business(index):
-
 		return
 
 
-	# -------------------------------------------------------
-	# ALREADY UNLOCKED = SELECT / UPGRADE
-	# -------------------------------------------------------
-
 	if businesses.is_unlocked(index):
 
-		if businesses.select_business(index):
+		var selected: bool = businesses.select_business(
+			index
+		)
+
+		if selected:
 
 			ui.set_status(
 				"Operating %s." %
@@ -248,10 +234,6 @@ func _on_business_pressed(
 
 		return
 
-
-	# -------------------------------------------------------
-	# UNLOCK
-	# -------------------------------------------------------
 
 	var unlock_cost: float = businesses.get_unlock_cost(
 		index
@@ -274,17 +256,17 @@ func _on_business_pressed(
 		state.cash
 	)
 
-	if not bool(result["success"]):
+	if not bool(result.get("success", false)):
 
 		ui.set_status(
-			str(result["message"])
+			str(result.get("message", "Unable to unlock business."))
 		)
 
 		return
 
 
 	var actual_cost: float = float(
-		result["cost"]
+		result.get("cost", 0.0)
 	)
 
 	if not state.spend_cash(actual_cost):
@@ -304,94 +286,7 @@ func _on_business_pressed(
 	)
 
 	_check_progression()
-
 	_save_game()
-
-	_refresh_ui()
-
-
-# =========================================================
-# BUSINESS UPGRADE
-# =========================================================
-
-func _upgrade_selected_business() -> void:
-
-	var index: int = businesses.selected_business
-
-	if not businesses.is_valid_business(index):
-
-		ui.set_status(
-			"Select a valid business."
-		)
-
-		return
-
-
-	if not businesses.is_unlocked(index):
-
-		ui.set_status(
-			"Unlock this business first."
-		)
-
-		return
-
-
-	var cost: float = businesses.get_upgrade_cost(
-		index
-	)
-
-	if state.cash < cost:
-
-		ui.set_status(
-			"Need $%s to upgrade %s." % [
-				_money(cost),
-				businesses.get_business_name(index)
-			]
-		)
-
-		return
-
-
-	var result: Dictionary = businesses.upgrade_business(
-		index,
-		state.cash
-	)
-
-	if not bool(result["success"]):
-
-		ui.set_status(
-			str(result["message"])
-		)
-
-		return
-
-
-	var actual_cost: float = float(
-		result["cost"]
-	)
-
-	if not state.spend_cash(actual_cost):
-
-		ui.set_status(
-			"Transaction failed."
-		)
-
-		return
-
-
-	_recalculate_businesses()
-
-	ui.set_status(
-		"%s upgraded to Level %d." % [
-			businesses.get_business_name(index),
-			businesses.get_level(index)
-		]
-	)
-
-	_check_progression()
-
-	_save_game()
-
 	_refresh_ui()
 
 
@@ -402,29 +297,34 @@ func _upgrade_selected_business() -> void:
 func _on_company_pressed() -> void:
 
 	# -------------------------------------------------------
-	# COMPANY ALREADY EXISTS
+	# COMPANY ALREADY ACTIVE
 	# -------------------------------------------------------
 
 	if company.is_active():
 
-		var result: Dictionary = company.upgrade_company(
+		var upgrade_result: Dictionary = company.upgrade_company(
 			state.cash
 		)
 
-		if not bool(result["success"]):
+		if not bool(upgrade_result.get("success", false)):
 
 			ui.set_status(
-				str(result["message"])
+				str(
+					upgrade_result.get(
+						"message",
+						"Unable to upgrade company."
+					)
+				)
 			)
 
 			return
 
 
-		var cost: float = float(
-			result["cost"]
+		var upgrade_cost: float = float(
+			upgrade_result.get("cost", 0.0)
 		)
 
-		if not state.spend_cash(cost):
+		if not state.spend_cash(upgrade_cost):
 
 			ui.set_status(
 				"Transaction failed."
@@ -441,9 +341,7 @@ func _on_company_pressed() -> void:
 		)
 
 		_check_progression()
-
 		_save_game()
-
 		_refresh_ui()
 
 		return
@@ -453,22 +351,29 @@ func _on_company_pressed() -> void:
 	# FORM COMPANY
 	# -------------------------------------------------------
 
+	var owned_businesses: int = businesses.get_owned_count()
+
 	var check: Dictionary = company.can_form_company(
-		businesses.get_owned_count(),
+		owned_businesses,
 		state.cash
 	)
 
-	if not bool(check["success"]):
+	if not bool(check.get("success", false)):
 
 		ui.set_status(
-			str(check["message"])
+			str(
+				check.get(
+					"message",
+					"Company cannot be formed."
+				)
+			)
 		)
 
 		return
 
 
 	var company_cost: float = float(
-		check["cost"]
+		check.get("cost", 0.0)
 	)
 
 	if not state.spend_cash(company_cost):
@@ -481,18 +386,23 @@ func _on_company_pressed() -> void:
 
 
 	var form_result: Dictionary = company.form_company(
-		businesses.get_owned_count(),
+		owned_businesses,
 		state.cash + company_cost
 	)
 
-	if not bool(form_result["success"]):
+	if not bool(form_result.get("success", false)):
 
 		state.add_cash(
 			company_cost
 		)
 
 		ui.set_status(
-			str(form_result["message"])
+			str(
+				form_result.get(
+					"message",
+					"Company formation failed."
+				)
+			)
 		)
 
 		return
@@ -505,9 +415,7 @@ func _on_company_pressed() -> void:
 	)
 
 	_check_progression()
-
 	_save_game()
-
 	_refresh_ui()
 
 
@@ -539,19 +447,23 @@ func _pay_monthly_profit() -> void:
 
 
 # =========================================================
-# RECALCULATE
+# RECALCULATE BUSINESSES
 # =========================================================
 
 func _recalculate_businesses() -> void:
 
-	businesses.set_company_multiplier(
+	var company_multiplier: float = (
 		company.get_revenue_multiplier()
+	)
+
+	businesses.set_company_multiplier(
+		company_multiplier
 	)
 
 	businesses.recalculate(
 		state.employee_count,
 		state.manager_count,
-		company.get_revenue_multiplier()
+		company_multiplier
 	)
 
 
@@ -594,11 +506,11 @@ func _check_progression() -> void:
 		ui.set_status(
 			"ACHIEVEMENT UNLOCKED! Reward: +$%s" %
 			_money(achievement_reward)
-		)
+	)
 
 
 # =========================================================
-# REFRESH
+# UI REFRESH
 # =========================================================
 
 func _refresh_ui() -> void:
@@ -619,6 +531,9 @@ func _refresh_ui() -> void:
 # =========================================================
 
 func _save_game() -> void:
+
+	if state == null:
+		return
 
 	var data: Dictionary = {
 		"state": {
@@ -664,135 +579,215 @@ func _load_game() -> void:
 	# GAME STATE
 	# -------------------------------------------------------
 
-	var state_data: Dictionary = data.get(
+	var state_value: Variant = data.get(
 		"state",
 		{}
 	)
 
-	state.cash = float(
-		state_data.get(
-			"cash",
-			0.0
-		)
-	)
+	if state_value is Dictionary:
 
-	state.total_earned = float(
-		state_data.get(
-			"total_earned",
-			0.0
-		)
-	)
+		var state_data: Dictionary = state_value
 
-	state.click_value = float(
-		state_data.get(
-			"click_value",
-			1.0
-		)
-	)
 
-	state.click_level = int(
-		state_data.get(
-			"click_level",
-			1
+		state.cash = float(
+			state_data.get(
+				"cash",
+				0.0
+			)
 		)
-	)
 
-	state.game_day = int(
-		state_data.get(
-			"game_day",
-			1
-		)
-	)
 
-	state.game_month = int(
-		state_data.get(
-			"game_month",
-			1
+		state.total_earned = float(
+			state_data.get(
+				"total_earned",
+				0.0
+			)
 		)
-	)
 
-	state.day_timer = float(
-		state_data.get(
-			"day_timer",
-			0.0
-		)
-	)
 
-	state.boost_active = bool(
-		state_data.get(
-			"boost_active",
-			false
+		state.click_value = float(
+			state_data.get(
+				"click_value",
+				1.0
+			)
 		)
-	)
 
-	state.boost_days_left = float(
-		state_data.get(
-			"boost_days_left",
-			0.0
-		)
-	)
 
-	state.total_months_completed = int(
-		state_data.get(
-			"total_months_completed",
-			0
+		state.click_level = int(
+			state_data.get(
+				"click_level",
+				1
+			)
 		)
-	)
 
-	state.employee_count = int(
-		state_data.get(
-			"employee_count",
-			0
-		)
-	)
 
-			state.manager_count = int(
-		state_data.get(
-			"manager_count",
-			0
+		state.game_day = int(
+			state_data.get(
+				"game_day",
+				1
+			)
 		)
-	)
+
+
+		state.game_month = int(
+			state_data.get(
+				"game_month",
+				1
+			)
+		)
+
+
+		state.day_timer = float(
+			state_data.get(
+				"day_timer",
+				0.0
+			)
+		)
+
+
+		state.boost_active = bool(
+			state_data.get(
+				"boost_active",
+				false
+			)
+		)
+
+
+		state.boost_days_left = float(
+			state_data.get(
+				"boost_days_left",
+				0.0
+			)
+		)
+
+
+		state.total_months_completed = int(
+			state_data.get(
+				"total_months_completed",
+				0
+			)
+		)
+
+
+		state.employee_count = int(
+			state_data.get(
+				"employee_count",
+				0
+			)
+		)
+
+
+		state.manager_count = int(
+			state_data.get(
+				"manager_count",
+				0
+			)
+		)
+
+
+	# -------------------------------------------------------
+	# SAFETY LIMITS
+	# -------------------------------------------------------
+
+	if state.cash < 0.0:
+		state.cash = 0.0
+
+
+	if state.total_earned < 0.0:
+		state.total_earned = 0.0
+
+
+	if state.click_value < 1.0:
+		state.click_value = 1.0
+
+
+	if state.click_value > GameState.MAX_CLICK_VALUE:
+		state.click_value = GameState.MAX_CLICK_VALUE
+
+
+	if state.click_level < 1:
+		state.click_level = 1
+
+
+	if state.click_level > 10:
+		state.click_level = 10
+
+
+	if state.game_day < 1:
+		state.game_day = 1
+
+
+	if state.game_day > GameState.DAYS_PER_MONTH:
+		state.game_day = GameState.DAYS_PER_MONTH
+
+
+	if state.game_month < 1:
+		state.game_month = 1
+
+
+	if state.employee_count < 0:
+		state.employee_count = 0
+
+
+	if state.manager_count < 0:
+		state.manager_count = 0
+
+
+	if state.boost_days_left <= 0.0:
+		state.boost_active = false
+		state.boost_days_left = 0.0
+
 
 	# -------------------------------------------------------
 	# BUSINESSES
 	# -------------------------------------------------------
 
-	var business_data: Dictionary = data.get(
+	var business_value: Variant = data.get(
 		"businesses",
 		{}
 	)
 
-	businesses.load_save_data(
-		business_data
-	)
+	if business_value is Dictionary:
+
+		businesses.load_save_data(
+			business_value
+		)
 
 
 	# -------------------------------------------------------
 	# COMPANY
 	# -------------------------------------------------------
 
-	var company_data: Dictionary = data.get(
+	var company_value: Variant = data.get(
 		"company",
 		{}
 	)
 
-	company.load_save_data(
-		company_data
-	)
+	if company_value is Dictionary:
+
+		company.load_save_data(
+			company_value
+		)
 
 
 	# -------------------------------------------------------
 	# PROGRESSION
 	# -------------------------------------------------------
 
-	var progression_data: Dictionary = data.get(
+	var progression_value: Variant = data.get(
 		"progression",
 		{}
 	)
 
-	progression.load_save_data(
-		progression_data
-	)
+	if progression_value is Dictionary:
+
+		progression.load_save_data(
+			progression_value
+		)
+
+
+	# Runtime timer should restart cleanly.
+	state.day_timer = 0.0
 
 
 # =========================================================
@@ -827,7 +822,7 @@ func _get_click_upgrade_cost(
 
 
 # =========================================================
-# MONEY
+# MONEY FORMAT
 # =========================================================
 
 func _money(
@@ -840,11 +835,13 @@ func _money(
 			value / 1000000000000.0
 		)
 
+
 	if value >= 1000000000.0:
 
 		return "%.2fB" % (
 			value / 1000000000.0
 		)
+
 
 	if value >= 1000000.0:
 
@@ -852,8 +849,10 @@ func _money(
 			value / 1000000.0
 		)
 
+
 	if value >= 1000.0:
 
 		return "%.0f" % value
+
 
 	return "%.0f" % value
