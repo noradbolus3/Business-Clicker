@@ -1,31 +1,67 @@
 extends RefCounted
 class_name GameState
 
+
+# ============================================================
+# GAME CONSTANTS
+# ============================================================
+
 const DAYS_PER_MONTH: int = 30
 const REAL_SECONDS_PER_GAME_DAY: float = 5.0
 
 const MAX_CLICK_VALUE: float = 10.0
+
 const BOOST_MULTIPLIER: float = 10.0
 const BOOST_DURATION_DAYS: float = 3.0
+
+
+# ============================================================
+# PLAYER MONEY
+# ============================================================
 
 var cash: float = 0.0
 var total_earned: float = 0.0
 
+
+# ============================================================
+# CLICKER
+# ============================================================
+
 var click_value: float = 1.0
 var click_level: int = 1
 
+
+# ============================================================
+# GAME TIME
+# ============================================================
+
 var game_day: int = 1
 var game_month: int = 1
+
 var day_timer: float = 0.0
+
+var total_months_completed: int = 0
+
+
+# ============================================================
+# BOOST
+# ============================================================
 
 var boost_active: bool = false
 var boost_days_left: float = 0.0
 
-var total_months_completed: int = 0
+
+# ============================================================
+# STAFF
+# ============================================================
 
 var employee_count: int = 0
 var manager_count: int = 0
 
+
+# ============================================================
+# RESET
+# ============================================================
 
 func reset() -> void:
 	cash = 0.0
@@ -38,14 +74,18 @@ func reset() -> void:
 	game_month = 1
 	day_timer = 0.0
 
+	total_months_completed = 0
+
 	boost_active = false
 	boost_days_left = 0.0
-
-	total_months_completed = 0
 
 	employee_count = 0
 	manager_count = 0
 
+
+# ============================================================
+# MONEY
+# ============================================================
 
 func add_cash(amount: float) -> void:
 	if amount <= 0.0:
@@ -66,6 +106,10 @@ func spend_cash(amount: float) -> bool:
 	return true
 
 
+# ============================================================
+# CLICKER
+# ============================================================
+
 func get_click_amount() -> float:
 	var amount: float = click_value
 
@@ -77,6 +121,9 @@ func get_click_amount() -> float:
 
 func upgrade_click(cost: float) -> bool:
 	if click_value >= MAX_CLICK_VALUE:
+		return false
+
+	if cost < 0.0:
 		return false
 
 	if not spend_cash(cost):
@@ -92,6 +139,10 @@ func upgrade_click(cost: float) -> bool:
 	return true
 
 
+# ============================================================
+# BOOST
+# ============================================================
+
 func activate_boost() -> bool:
 	if boost_active:
 		return false
@@ -102,20 +153,36 @@ func activate_boost() -> bool:
 	return true
 
 
-func advance_real_time(delta: float) -> bool:
-	day_timer += delta
+# ============================================================
+# REAL-TIME → GAME-TIME
+# ============================================================
 
-	if day_timer < REAL_SECONDS_PER_GAME_DAY:
+func advance_real_time(delta: float) -> bool:
+	if delta <= 0.0:
 		return false
 
-	day_timer -= REAL_SECONDS_PER_GAME_DAY
-	advance_game_day()
+	day_timer += delta
 
-	return true
+	var day_advanced: bool = false
 
+	while day_timer >= REAL_SECONDS_PER_GAME_DAY:
+		day_timer -= REAL_SECONDS_PER_GAME_DAY
+		advance_game_day()
+		day_advanced = true
+
+	return day_advanced
+
+
+# ============================================================
+# GAME DAY
+# ============================================================
 
 func advance_game_day() -> void:
 	game_day += 1
+
+	# --------------------------------------------------------
+	# BOOST TIME
+	# --------------------------------------------------------
 
 	if boost_active:
 		boost_days_left -= 1.0
@@ -124,27 +191,47 @@ func advance_game_day() -> void:
 			boost_active = false
 			boost_days_left = 0.0
 
+	# --------------------------------------------------------
+	# MONTH ROLLOVER
+	# --------------------------------------------------------
+
 	if game_day > DAYS_PER_MONTH:
 		game_day = 1
 		game_month += 1
 		total_months_completed += 1
 
 
+# ============================================================
+# STAFF
+# ============================================================
+
 func hire_employee(cost: float) -> bool:
+	if cost < 0.0:
+		return false
+
 	if not spend_cash(cost):
 		return false
 
 	employee_count += 1
+
 	return true
 
 
 func hire_manager(cost: float) -> bool:
+	if cost < 0.0:
+		return false
+
 	if not spend_cash(cost):
 		return false
 
 	manager_count += 1
+
 	return true
 
+
+# ============================================================
+# STAFF BUSINESS EFFECTS
+# ============================================================
 
 func get_employee_revenue_multiplier() -> float:
 	return 1.0 + float(employee_count) * 0.025
